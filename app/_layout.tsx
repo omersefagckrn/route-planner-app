@@ -2,11 +2,11 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
-import { store } from '../store/store';
+import { rootStore } from '../store/rootStore';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAddresses, fetchFavorites } from '../store/features/addressSlice';
-import type { RootState, AppDispatch } from '../store/store';
+import type { RootState, AppDispatch } from '../store/rootStore';
 
 function AppContent() {
 	const dispatch = useDispatch<AppDispatch>();
@@ -40,7 +40,7 @@ function AppContent() {
 
 export default function RootLayout() {
 	return (
-		<Provider store={store}>
+		<Provider store={rootStore}>
 			<AppContent />
 		</Provider>
 	);

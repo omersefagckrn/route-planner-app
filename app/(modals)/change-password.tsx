@@ -6,15 +6,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { Formik } from 'formik';
 import { supabase } from '../../lib/supabase';
 import { changePassword } from '../../store/features/authSlice';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { Input } from '../../components/Input';
-import type { RootState, AppDispatch } from '@/store/store';
+import { OverlayLoading } from '../../components/OverlayLoading';
+import { InputField } from '../../components/InputField';
+import type { RootState, AppDispatch } from '@/store/rootStore';
 import { ChangePasswordFormValues, ChangePasswordSchema } from '@/schemas/auth';
+import { colors } from '@/lib/theme';
 
 export default function ChangePasswordScreen() {
 	const dispatch = useDispatch<AppDispatch>();
 	const { isLoading, user } = useSelector((state: RootState) => state.auth);
 	const [error, setError] = useState('');
+	const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+	const [showNewPassword, setShowNewPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	const handleChangePassword = async (values: ChangePasswordFormValues) => {
 		try {
@@ -25,7 +29,6 @@ export default function ChangePasswordScreen() {
 				return;
 			}
 
-			// Önce mevcut şifreyi kontrol et
 			const { error: signInError } = await supabase.auth.signInWithPassword({
 				email: user.email,
 				password: values.currentPassword
@@ -40,13 +43,11 @@ export default function ChangePasswordScreen() {
 				return;
 			}
 
-			// Yeni şifre mevcut şifre ile aynı mı kontrol et
 			if (values.currentPassword === values.newPassword) {
 				setError('Yeni şifreniz mevcut şifreniz ile aynı olamaz');
 				return;
 			}
 
-			// Şifre değiştirme işlemi
 			await dispatch(changePassword({ password: values.newPassword })).unwrap();
 			router.back();
 		} catch (err: any) {
@@ -114,34 +115,65 @@ export default function ChangePasswordScreen() {
 
 							<View style={styles.form}>
 								<View style={styles.inputGroup}>
-									<Input
+									<InputField
 										label='Mevcut Şifre'
 										placeholder='••••••'
 										value={values.currentPassword}
 										onChangeText={handleChange('currentPassword')}
 										onBlur={handleBlur('currentPassword')}
-										error={touched.currentPassword && errors.currentPassword}
-										secureTextEntry
+										error={touched.currentPassword && errors.currentPassword ? errors.currentPassword : undefined}
+										secureTextEntry={!showCurrentPassword}
+										rightIcon={
+											<TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+												<Ionicons
+													name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
+													size={24}
+													color={colors.text.secondary}
+												/>
+											</TouchableOpacity>
+										}
 									/>
 
-									<Input
+									<InputField
 										label='Yeni Şifre'
 										placeholder='••••••'
 										value={values.newPassword}
 										onChangeText={handleChange('newPassword')}
 										onBlur={handleBlur('newPassword')}
-										error={touched.newPassword && errors.newPassword}
-										secureTextEntry
+										error={touched.newPassword && errors.newPassword ? errors.newPassword : undefined}
+										secureTextEntry={!showNewPassword}
+										rightIcon={
+											<TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+												<Ionicons
+													name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
+													size={24}
+													color={colors.text.secondary}
+												/>
+											</TouchableOpacity>
+										}
 									/>
 
-									<Input
+									<InputField
 										label='Yeni Şifre Tekrarı'
 										placeholder='••••••'
 										value={values.confirmNewPassword}
 										onChangeText={handleChange('confirmNewPassword')}
 										onBlur={handleBlur('confirmNewPassword')}
-										error={touched.confirmNewPassword && errors.confirmNewPassword}
-										secureTextEntry
+										error={
+											touched.confirmNewPassword && errors.confirmNewPassword
+												? errors.confirmNewPassword
+												: undefined
+										}
+										secureTextEntry={!showConfirmPassword}
+										rightIcon={
+											<TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+												<Ionicons
+													name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+													size={24}
+													color={colors.text.secondary}
+												/>
+											</TouchableOpacity>
+										}
 									/>
 								</View>
 
@@ -155,7 +187,7 @@ export default function ChangePasswordScreen() {
 					)}
 				</Formik>
 
-				<LoadingOverlay visible={isLoading} message='Şifre değiştiriliyor...' />
+				<OverlayLoading visible={isLoading} message='Şifre değiştiriliyor...' />
 			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);

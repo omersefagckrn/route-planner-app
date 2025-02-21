@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { updateProfile } from '../../store/features/authSlice';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import type { RootState, AppDispatch } from '@/store/store';
+import { OverlayLoading } from '../../components/OverlayLoading';
+import { InputField } from '../../components/InputField';
+import type { RootState, AppDispatch } from '@/store/rootStore';
 
 export default function EditProfileScreen() {
 	const dispatch = useDispatch<AppDispatch>();
@@ -65,26 +66,22 @@ export default function EditProfileScreen() {
 
 				<View style={styles.form}>
 					<View style={styles.inputContainer}>
-						<Text style={styles.label}>Ad</Text>
-						<TextInput
-							style={styles.input}
+						<InputField
+							label='Ad'
+							placeholder='Adınızı girin'
 							value={firstName}
 							onChangeText={setFirstName}
-							placeholder='Adınızı girin'
-							placeholderTextColor='#9CA3AF'
 							autoCapitalize='words'
 							autoCorrect={false}
 						/>
 					</View>
 
 					<View style={styles.inputContainer}>
-						<Text style={styles.label}>Soyad</Text>
-						<TextInput
-							style={styles.input}
+						<InputField
+							label='Soyad'
+							placeholder='Soyadınızı girin'
 							value={lastName}
 							onChangeText={setLastName}
-							placeholder='Soyadınızı girin'
-							placeholderTextColor='#9CA3AF'
 							autoCapitalize='words'
 							autoCorrect={false}
 						/>
@@ -102,7 +99,7 @@ export default function EditProfileScreen() {
 					{error ? <Text style={styles.errorText}>{error}</Text> : null}
 				</View>
 
-				<LoadingOverlay visible={isLoading} message='Profil güncelleniyor...' />
+				<OverlayLoading visible={isLoading} message='Profil güncelleniyor...' />
 			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);
@@ -156,15 +153,6 @@ const styles = StyleSheet.create({
 		fontWeight: '500',
 		marginBottom: 8,
 		color: '#374151'
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: '#E5E7EB',
-		borderRadius: 10,
-		padding: 14,
-		fontSize: 16,
-		backgroundColor: '#F9FAFB',
-		color: '#111827'
 	},
 	errorText: {
 		color: '#EF4444',

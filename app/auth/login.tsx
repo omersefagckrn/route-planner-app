@@ -4,11 +4,11 @@ import { Link, router } from 'expo-router';
 import { Formik } from 'formik';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/useStore';
 import { signIn, clearError } from '../../store/features/authSlice';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
+import { OverlayLoading } from '../../components/OverlayLoading';
+import { InputField } from '../../components/InputField';
+import { BtnPrimary } from '../../components/BtnPrimary';
 import { LoginFormValues, LoginSchema } from '@/schemas/auth';
 
 export default function LoginScreen() {
@@ -44,7 +44,7 @@ export default function LoginScreen() {
 				</View>
 			</LinearGradient>
 
-			<LoadingOverlay visible={isLoading} message='Giriş yapılıyor...' />
+			<OverlayLoading visible={isLoading} message='Giriş yapılıyor...' />
 
 			{(error || loginError) && (
 				<View style={styles.errorContainer}>
@@ -63,30 +63,30 @@ export default function LoginScreen() {
 					{({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
 						<View style={styles.form}>
 							<View style={styles.inputGroup}>
-								<Input
+								<InputField
 									label='E-posta Adresi'
 									placeholder='ornek@email.com'
 									value={values.email}
 									onChangeText={handleChange('email')}
 									onBlur={handleBlur('email')}
-									error={touched.email && errors.email}
+									error={touched.email && errors.email ? errors.email : undefined}
 									keyboardType='email-address'
 									autoCapitalize='none'
 								/>
 
-								<Input
+								<InputField
 									label='Şifre'
 									placeholder='••••••'
 									value={values.password}
 									onChangeText={handleChange('password')}
 									onBlur={handleBlur('password')}
-									error={touched.password && errors.password}
+									error={touched.password && errors.password ? errors.password : undefined}
 									secureTextEntry
 								/>
 							</View>
 
 							<View style={styles.actionGroup}>
-								<Button onPress={() => handleSubmit()} title='Giriş Yap' loading={isLoading} />
+								<BtnPrimary onPress={() => handleSubmit()} title='Giriş Yap' loading={isLoading} />
 
 								<Link href='/auth/register' asChild>
 									<TouchableOpacity style={styles.registerButton}>

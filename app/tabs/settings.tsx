@@ -6,10 +6,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { RootState, AppDispatch } from '@/store/store';
+import type { RootState, AppDispatch } from '@/store/rootStore';
 import { getCurrentUser, signOut } from '../../store/features/authSlice';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { AuthButtons } from '../../components/AuthButtons';
+import { OverlayLoading } from '../../components/OverlayLoading';
+import { BtnAuth } from '../../components/BtnAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
@@ -56,7 +56,7 @@ export default function SettingsScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.container}>
-				<LoadingOverlay visible={true} message='Yükleniyor...' />
+				<OverlayLoading visible={true} message='Yükleniyor...' />
 			</View>
 		);
 	}
@@ -104,7 +104,7 @@ export default function SettingsScreen() {
 					</View>
 
 					<View style={styles.authButtonsContainer}>
-						<AuthButtons />
+						<BtnAuth />
 					</View>
 				</ScrollView>
 			</SafeAreaView>
@@ -209,8 +209,6 @@ const styles = StyleSheet.create({
 	},
 	header: {
 		padding: 24,
-		borderBottomLeftRadius: 24,
-		borderBottomRightRadius: 24,
 		marginBottom: 8,
 		...Platform.select({
 			ios: {

@@ -12,8 +12,8 @@ export default function ModalLayout() {
 			<Stack.Screen name='index' />
 			<Stack.Screen name='add-address' />
 			<Stack.Screen name='edit-address' />
-			<Stack.Screen name='map-picker' />
 			<Stack.Screen name='edit-profile' />
+			<Stack.Screen name='map-picker' />
 			<Stack.Screen name='change-password' />
 		</Stack>
 	);

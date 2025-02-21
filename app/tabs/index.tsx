@@ -2,9 +2,9 @@ import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Dimensi
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { OverlayLoading } from '../../components/OverlayLoading';
 import { useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from '@/store/store';
+import type { RootState, AppDispatch } from '@/store/rootStore';
 import { getCurrentUser } from '../../store/features/authSlice';
 import Animated, { useAnimatedScrollHandler, useSharedValue, interpolate, useAnimatedStyle, withSpring, FadeIn, FadeInDown, FadeInUp, ZoomIn, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -215,7 +215,7 @@ export default function HomeScreen() {
 	if (isLoading) {
 		return (
 			<SafeAreaView edges={['top']} style={styles.container}>
-				<LoadingOverlay visible={true} message='Yükleniyor...' />
+				<OverlayLoading visible={true} message='Yükleniyor...' />
 			</SafeAreaView>
 		);
 	}

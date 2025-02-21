@@ -6,12 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { fetchAddresses, fetchFavorites, removeAddress, toggleAddressFavorite } from '../../store/features/addressSlice';
-import { RootState } from '../../store/store';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { RootState } from '../../store/rootStore';
+import { OverlayLoading } from '../../components/OverlayLoading';
 import { colors } from '../../lib/theme';
 import { Address } from '../../types/address';
-import { AppDispatch } from '../../store/store';
-import { AuthButtons } from '../../components/AuthButtons';
+import { AppDispatch } from '../../store/rootStore';
+import { BtnAuth } from '../../components/BtnAuth';
 
 export default function AddressBookScreen() {
 	const dispatch = useDispatch<AppDispatch>();
@@ -122,8 +122,6 @@ export default function AddressBookScreen() {
 								<Text style={styles.featureText}>Rotaları Planlayın</Text>
 							</View>
 						</View>
-
-						<AuthButtons />
 					</View>
 				</ScrollView>
 			</SafeAreaView>
@@ -219,7 +217,7 @@ export default function AddressBookScreen() {
 				)}
 			</ScrollView>
 
-			{isLoading && <LoadingOverlay visible={true} />}
+			{isLoading && <OverlayLoading visible={true} />}
 		</SafeAreaView>
 	);
 }

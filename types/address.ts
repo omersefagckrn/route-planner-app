@@ -16,19 +16,6 @@ export type Coordinates = {
 	longitude: number;
 };
 
-// API response tipleri
-export type AddressResponse = {
-	success: boolean;
-	data?: Address;
-	error?: string;
-};
-
-export type AddressListResponse = {
-	success: boolean;
-	data?: Address[];
-	error?: string;
-};
-
 // State tipleri
 export interface AddressState {
 	addresses: Address[];
@@ -36,14 +23,3 @@ export interface AddressState {
 	loading: boolean;
 	error: string | null;
 }
-
-// Action tipleri
-export type AddressAction =
-	| { type: 'FETCH_ADDRESSES_REQUEST' }
-	| { type: 'FETCH_ADDRESSES_SUCCESS'; payload: Address[] }
-	| { type: 'FETCH_ADDRESSES_FAILURE'; payload: string }
-	| { type: 'ADD_ADDRESS_SUCCESS'; payload: Address }
-	| { type: 'UPDATE_ADDRESS_SUCCESS'; payload: Address }
-	| { type: 'DELETE_ADDRESS_SUCCESS'; payload: string }
-	| { type: 'TOGGLE_FAVORITE_SUCCESS'; payload: Address }
-	| { type: 'CLEAR_ERROR' };

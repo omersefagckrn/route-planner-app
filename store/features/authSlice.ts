@@ -112,8 +112,6 @@ export const updateProfile = createAsyncThunk('auth/updateProfile', async (updat
 				console.error('Profil güncelleme hatası:', profileError);
 				throw new Error('Profil bilgileri güncellenirken bir hata oluştu');
 			}
-
-			console.log('Profil güncelleme sonucu:', profileData);
 		}
 
 		// Güncel kullanıcı bilgilerini al

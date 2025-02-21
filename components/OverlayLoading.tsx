@@ -8,7 +8,7 @@ interface LoadingOverlayProps {
 	message?: string;
 }
 
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, message = 'Yükleniyor...' }) => {
+export const OverlayLoading: React.FC<LoadingOverlayProps> = ({ visible, message = 'Yükleniyor...' }) => {
 	const spinValue = React.useRef(new Animated.Value(0)).current;
 
 	React.useEffect(() => {

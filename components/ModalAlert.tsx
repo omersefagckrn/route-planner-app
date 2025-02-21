@@ -18,7 +18,7 @@ interface CustomAlertProps {
 	onClose: () => void;
 }
 
-export function CustomAlert({ visible, title, message, buttons, onClose }: CustomAlertProps) {
+export const ModalAlert = ({ visible, title, message, buttons, onClose }: CustomAlertProps) => {
 	return (
 		<Modal visible={visible} transparent animationType='fade' onRequestClose={onClose}>
 			<View style={styles.overlay}>
@@ -60,7 +60,7 @@ export function CustomAlert({ visible, title, message, buttons, onClose }: Custo
 			</View>
 		</Modal>
 	);
-}
+};
 
 const styles = StyleSheet.create({
 	overlay: {

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-export const AuthButtons = () => {
+export const BtnAuth = () => {
 	return (
 		<View style={styles.container}>
 			<Link href='/auth/login' asChild>

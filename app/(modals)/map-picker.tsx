@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView, Platform, ActivityIndicator, TextInput, ScrollView, Keyboard } from 'react-native';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ const INITIAL_REGION = {
 
 export default function MapPickerModal() {
 	const mapRef = useRef<MapView>(null);
+	const inputRef = useRef<TextInput>(null);
 	const params = useLocalSearchParams();
 	const isEditMode = params.editMode === 'true';
 	const addressId = params.id;
@@ -47,10 +48,31 @@ export default function MapPickerModal() {
 	const [loadingMessage, setLoadingMessage] = useState('');
 
 	useEffect(() => {
-		if (initialLatitude && initialLongitude) {
-			animateToLocation(initialLatitude, initialLongitude);
-		}
-	}, []);
+		const getInitialLocation = async () => {
+			try {
+				const { status } = await Location.requestForegroundPermissionsAsync();
+				if (status === 'granted') {
+					const location = await Location.getCurrentPositionAsync({
+						accuracy: Location.Accuracy.Balanced
+					});
+
+					if (!initialLatitude && !initialLongitude) {
+						const newRegion = {
+							latitude: location.coords.latitude,
+							longitude: location.coords.longitude,
+							latitudeDelta: 0.01,
+							longitudeDelta: 0.01
+						};
+						mapRef.current?.animateToRegion(newRegion, 1000);
+					}
+				}
+			} catch (error) {
+				console.error('Error getting location:', error);
+			}
+		};
+
+		getInitialLocation();
+	}, [initialLatitude, initialLongitude]);
 
 	useEffect(() => {
 		const searchAddress = async () => {
@@ -190,6 +212,11 @@ export default function MapPickerModal() {
 	const handleSelectSearchResult = async (address: Location.LocationGeocodedAddress) => {
 		try {
 			setLoading(true);
+			setSearchResults([]);
+			setSearchQuery('');
+			Keyboard.dismiss();
+			inputRef.current?.blur();
+
 			const results = await Location.geocodeAsync([address.street, address.streetNumber, address.city, address.country].filter(Boolean).join(', '));
 
 			if (results.length > 0) {
@@ -201,8 +228,6 @@ export default function MapPickerModal() {
 			console.log('Error selecting address:', error);
 		} finally {
 			setLoading(false);
-			setSearchResults([]);
-			setSearchQuery('');
 		}
 	};
 
@@ -220,21 +245,43 @@ export default function MapPickerModal() {
 				<View style={styles.searchInputContainer}>
 					<Ionicons name='search' size={20} color={colors.text.secondary} style={styles.searchIcon} />
 					<TextInput
+						ref={inputRef}
 						style={styles.searchInput}
 						placeholder='Adres ara...'
 						value={searchQuery}
 						onChangeText={setSearchQuery}
 						placeholderTextColor={colors.text.secondary}
+						returnKeyType='search'
+						onSubmitEditing={() => {
+							Keyboard.dismiss();
+							inputRef.current?.blur();
+						}}
+						enablesReturnKeyAutomatically
 					/>
 					{searchQuery.length > 0 && (
-						<TouchableOpacity style={styles.clearButton} onPress={() => setSearchQuery('')}>
+						<TouchableOpacity
+							style={styles.clearButton}
+							onPress={() => {
+								setSearchQuery('');
+								Keyboard.dismiss();
+								inputRef.current?.blur();
+							}}
+						>
 							<Ionicons name='close-circle' size={20} color={colors.text.secondary} />
 						</TouchableOpacity>
 					)}
 				</View>
 
 				{searchResults.length > 0 && (
-					<ScrollView style={styles.searchResults} keyboardShouldPersistTaps='handled'>
+					<ScrollView
+						style={styles.searchResults}
+						keyboardShouldPersistTaps='never'
+						keyboardDismissMode='on-drag'
+						onScrollBeginDrag={() => {
+							Keyboard.dismiss();
+							inputRef.current?.blur();
+						}}
+					>
 						{searchResults.map((result, index) => (
 							<TouchableOpacity key={index} style={styles.searchResultItem} onPress={() => handleSelectSearchResult(result)}>
 								<Ionicons name='location' size={20} color='#1A1A1A' style={styles.resultIcon} />
@@ -258,7 +305,7 @@ export default function MapPickerModal() {
 					onPress={handleMapPress}
 					showsUserLocation
 					showsMyLocationButton={false}
-					showsCompass
+					showsCompass={false}
 					rotateEnabled={false}
 				>
 					{selectedLocation && <Marker coordinate={selectedLocation} pinColor='#1A1A1A' />}
@@ -342,7 +389,9 @@ const styles = StyleSheet.create({
 		top: Platform.OS === 'ios' ? 100 : 80,
 		left: 20,
 		right: 20,
-		zIndex: 1
+		zIndex: 1,
+		marginBottom: 16,
+		backgroundColor: 'transparent'
 	},
 	searchInputContainer: {
 		flexDirection: 'row',
@@ -373,7 +422,8 @@ const styles = StyleSheet.create({
 		marginTop: 8,
 		borderWidth: 1,
 		borderColor: colors.border.default,
-		...shadows.medium
+		...shadows.medium,
+		zIndex: 2
 	},
 	searchResultItem: {
 		flexDirection: 'row',
@@ -400,12 +450,13 @@ const styles = StyleSheet.create({
 	},
 	mapContainer: {
 		height: MAP_HEIGHT,
-		position: 'relative'
+		position: 'relative',
+		marginTop: 12
 	},
 	map: {
 		...StyleSheet.absoluteFillObject,
-		borderRadius: 16,
-		margin: 16
+		borderRadius: 24,
+		margin: 20
 	},
 	currentLocationButton: {
 		position: 'absolute',
@@ -424,14 +475,15 @@ const styles = StyleSheet.create({
 	},
 	loadingContainer: {
 		position: 'absolute',
-		top: 16,
-		left: 16,
-		right: 16,
+		top: 70,
+		left: 20,
+		right: 20,
 		backgroundColor: colors.primary.light,
 		paddingVertical: 12,
 		paddingHorizontal: 16,
 		borderRadius: 12,
-		...shadows.medium
+		...shadows.medium,
+		zIndex: 3
 	},
 	loadingText: {
 		color: '#fff',
@@ -441,20 +493,21 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		padding: 20,
+		paddingTop: 24,
 		backgroundColor: '#fff',
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
-		...shadows.large
+		...shadows.medium
 	},
 	locationInfo: {
-		gap: 16
+		gap: 12
 	},
 	addressContainer: {
 		flexDirection: 'row',
 		alignItems: 'flex-start',
 		backgroundColor: colors.background.primary,
-		padding: 16,
-		borderRadius: 16
+		padding: 12,
+		borderRadius: 12
 	},
 	addressIcon: {
 		marginRight: 12,

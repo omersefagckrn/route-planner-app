@@ -1,18 +1,19 @@
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Animated, ScrollView, ViewStyle, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Animated, ScrollView, ViewStyle, Linking, Alert, ActivityIndicator } from 'react-native';
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { colors, shadows } from '../../lib/theme';
-import { RootState } from '../../store/store';
+import { RootState } from '../../store/rootStore';
 import { Address } from '../../types/address';
-import { AuthButtons } from '../../components/AuthButtons';
+import { BtnAuth } from '../../components/BtnAuth';
 import { fetchAddresses } from '../../store/features/addressSlice';
-import { CustomAlert } from '../../components/CustomAlert';
+import { ModalAlert } from '../../components/ModalAlert';
+import { InputField } from '../../components/InputField';
 
 const { width, height } = Dimensions.get('window');
 
@@ -88,39 +89,63 @@ const styles = StyleSheet.create({
 	},
 	infoCard: {
 		position: 'absolute',
-		bottom: Platform.OS === 'ios' ? 40 : 100,
-		left: 12,
-		right: 12,
-		borderRadius: 12,
-		overflow: 'hidden',
-		...shadows.medium
-	} as ViewStyle,
+		top: Platform.OS === 'ios' ? 60 : 30,
+		left: 20,
+		right: 20,
+		zIndex: 1,
+		backgroundColor: '#fff',
+		borderRadius: 24,
+		marginBottom: 24,
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.1,
+				shadowRadius: 8
+			},
+			android: {
+				elevation: 4
+			}
+		})
+	},
 	infoCardContent: {
 		flexDirection: 'row',
-		padding: 12,
-		gap: 12,
-		backgroundColor: 'rgba(255,255,255,0.95)'
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		padding: 16
 	},
 	infoItem: {
 		flex: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
-		padding: 10,
-		borderRadius: 10,
-		gap: 8
+		gap: 12
+	},
+	infoIconContainer: {
+		width: 40,
+		height: 40,
+		borderRadius: 12,
+		backgroundColor: `${colors.primary.light}10`,
+		alignItems: 'center',
+		justifyContent: 'center'
 	},
 	infoTextContainer: {
 		flex: 1
 	},
-	infoLabel: {
-		fontSize: 11,
-		color: colors.text.secondary,
-		marginBottom: 1
-	},
 	infoValue: {
-		fontSize: 16,
+		fontSize: 20,
 		fontWeight: '600',
-		color: colors.text.primary
+		color: colors.text.primary,
+		marginBottom: 2
+	},
+	infoLabel: {
+		fontSize: 13,
+		color: colors.text.secondary
+	},
+	divider: {
+		width: 1,
+		height: 40,
+		backgroundColor: '#E5E7EB',
+		marginHorizontal: 8
 	},
 	detailContainer: {
 		position: 'absolute',
@@ -384,8 +409,191 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: '600',
 		color: colors.text.primary
+	},
+	searchContainer: {
+		position: 'absolute',
+		top: Platform.OS === 'ios' ? 130 : 100,
+		left: 20,
+		right: 20,
+		zIndex: 1,
+		marginTop: 20
+	},
+	searchInput: {
+		backgroundColor: '#fff',
+		borderRadius: 16,
+		overflow: 'hidden',
+		padding: 12,
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8
+			},
+			android: {
+				elevation: 4
+			}
+		})
+	},
+	disabledInput: {
+		backgroundColor: '#F5F5F5',
+		opacity: 0.8
+	},
+	locationButton: {
+		position: 'absolute',
+		bottom: Platform.OS === 'ios' ? 40 : 30,
+		right: 20,
+		borderRadius: 12,
+		overflow: 'hidden',
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8
+			},
+			android: {
+				elevation: 4
+			}
+		})
+	},
+	locationButtonGradient: {
+		width: 44,
+		height: 44,
+		alignItems: 'center',
+		justifyContent: 'center'
+	},
+	searchResults: {
+		backgroundColor: 'rgba(255, 255, 255, 0.95)',
+		borderRadius: 12,
+		marginTop: 4,
+		maxHeight: height * 0.4,
+		overflow: 'hidden',
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.15,
+				shadowRadius: 8
+			},
+			android: {
+				elevation: 4
+			}
+		})
+	},
+	resultsList: {
+		padding: 8,
+		backgroundColor: '#fff'
+	},
+	resultItem: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 12,
+		borderRadius: 8,
+		backgroundColor: '#fff'
+	},
+	resultIcon: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		backgroundColor: '#F3F4F6',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: 12
+	},
+	resultInfo: {
+		flex: 1,
+		marginRight: 8
+	},
+	resultTitle: {
+		fontSize: 15,
+		fontWeight: '600',
+		color: colors.text.primary
+	},
+	resultAddress: {
+		fontSize: 13,
+		color: colors.text.secondary
+	},
+	searchMessage: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		padding: 16,
+		gap: 8
+	},
+	messageText: {
+		fontSize: 14,
+		color: colors.text.secondary
 	}
 });
+
+const mapStyle = [
+	{
+		featureType: 'water',
+		elementType: 'geometry',
+		stylers: [{ color: '#E3F2FD' }]
+	},
+	{
+		featureType: 'landscape',
+		elementType: 'geometry',
+		stylers: [{ color: '#FAFAFA' }]
+	},
+	{
+		featureType: 'road',
+		elementType: 'geometry',
+		stylers: [{ color: '#FFFFFF' }]
+	},
+	{
+		featureType: 'road',
+		elementType: 'geometry.stroke',
+		stylers: [{ color: '#E0E0E0' }]
+	},
+	{
+		featureType: 'road.highway',
+		elementType: 'geometry',
+		stylers: [{ color: '#E0E0E0' }]
+	},
+	{
+		featureType: 'poi',
+		elementType: 'geometry',
+		stylers: [{ color: '#F5F5F5' }]
+	},
+	{
+		featureType: 'poi.park',
+		elementType: 'geometry',
+		stylers: [{ color: '#E8F5E9' }]
+	},
+	{
+		featureType: 'transit.station',
+		elementType: 'geometry',
+		stylers: [{ color: '#EEEEEE' }]
+	},
+	{
+		featureType: 'administrative',
+		elementType: 'geometry.stroke',
+		stylers: [{ color: '#BDBDBD' }]
+	},
+	{
+		featureType: 'road',
+		elementType: 'labels.text.fill',
+		stylers: [{ color: '#757575' }]
+	},
+	{
+		featureType: 'road',
+		elementType: 'labels.text.stroke',
+		stylers: [{ color: '#FFFFFF' }]
+	},
+	{
+		featureType: 'poi',
+		elementType: 'labels.text.fill',
+		stylers: [{ color: '#757575' }]
+	},
+	{
+		featureType: 'water',
+		elementType: 'labels.text.fill',
+		stylers: [{ color: '#90CAF9' }]
+	}
+];
 
 // Memoize edilmiş marker komponenti
 const MapMarker = memo(({ address, onPress }: { address: Address; onPress: (address: Address) => void }) => (
@@ -414,22 +622,27 @@ const InfoCard = memo(({ addresses }: { addresses: Address[] }) => {
 
 	return (
 		<View style={styles.infoCard}>
-			<LinearGradient colors={['rgba(255,255,255,0.95)', '#fff']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.infoCardContent}>
+			<View style={styles.infoCardContent}>
 				<View style={styles.infoItem}>
-					<Ionicons name='location' size={24} color={colors.primary.light} />
+					<View style={styles.infoIconContainer}>
+						<Ionicons name='location' size={20} color={colors.primary.light} />
+					</View>
 					<View style={styles.infoTextContainer}>
-						<Text style={styles.infoLabel}>Toplam Adres</Text>
 						<Text style={styles.infoValue}>{addresses.length}</Text>
+						<Text style={styles.infoLabel}>Toplam Adres</Text>
 					</View>
 				</View>
+				<View style={styles.divider} />
 				<View style={styles.infoItem}>
-					<Ionicons name='star' size={24} color={colors.primary.light} />
+					<View style={styles.infoIconContainer}>
+						<Ionicons name='star' size={20} color={colors.primary.light} />
+					</View>
 					<View style={styles.infoTextContainer}>
-						<Text style={styles.infoLabel}>Favori Adresler</Text>
 						<Text style={styles.infoValue}>{favoriteCount}</Text>
+						<Text style={styles.infoLabel}>Favori Adresler</Text>
 					</View>
 				</View>
-			</LinearGradient>
+			</View>
 		</View>
 	);
 });
@@ -465,8 +678,8 @@ export default function RoutesScreen() {
 	const [initialRegion, setInitialRegion] = useState({
 		latitude: 41.0082,
 		longitude: 28.9784,
-		latitudeDelta: 0.0922,
-		longitudeDelta: 0.0421
+		latitudeDelta: 0.01,
+		longitudeDelta: 0.01
 	});
 	const mapRef = useRef<MapView>(null);
 	const scrollViewRef = useRef<ScrollView>(null);
@@ -474,6 +687,10 @@ export default function RoutesScreen() {
 	const slideAnim = useRef(new Animated.Value(height)).current;
 	const [showNavigationAlert, setShowNavigationAlert] = useState(false);
 	const [navigationDestination, setNavigationDestination] = useState<{ latitude: number; longitude: number } | null>(null);
+	const [searchQuery, setSearchQuery] = useState('');
+	const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
+	const [isSearching, setIsSearching] = useState(false);
+	const [showSearchResults, setShowSearchResults] = useState(false);
 
 	// Memoize edilmiş hesaplamalar
 	const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -566,24 +783,17 @@ export default function RoutesScreen() {
 					});
 					if (isMounted) {
 						setUserLocation(location);
-						setInitialRegion({
+						const newRegion = {
 							latitude: location.coords.latitude,
 							longitude: location.coords.longitude,
-							latitudeDelta: 0.0922,
-							longitudeDelta: 0.0421
-						});
+							latitudeDelta: 0.01,
+							longitudeDelta: 0.01
+						};
+						setInitialRegion(newRegion);
 
 						// Harita hazırsa konuma git
 						if (mapRef.current && isMapReady) {
-							mapRef.current.animateToRegion(
-								{
-									latitude: location.coords.latitude,
-									longitude: location.coords.longitude,
-									latitudeDelta: 0.0922,
-									longitudeDelta: 0.0421
-								},
-								1000
-							);
+							mapRef.current.animateToRegion(newRegion, 1000);
 						}
 					}
 				}
@@ -635,7 +845,18 @@ export default function RoutesScreen() {
 	// Harita hazır olduğunda çağrılacak
 	const onMapReady = useCallback(() => {
 		setIsMapReady(true);
-	}, []);
+		if (userLocation) {
+			mapRef.current?.animateToRegion(
+				{
+					latitude: userLocation.coords.latitude,
+					longitude: userLocation.coords.longitude,
+					latitudeDelta: 0.01,
+					longitudeDelta: 0.01
+				},
+				1000
+			);
+		}
+	}, [userLocation]);
 
 	// Memoize edilmiş marker listesi
 	const markers = useMemo(() => {
@@ -707,6 +928,80 @@ export default function RoutesScreen() {
 		[userLocation, navigationDestination]
 	);
 
+	// Arama fonksiyonu - geliştirilmiş versiyon
+	const handleSearch = useCallback(
+		(query: string) => {
+			setSearchQuery(query);
+
+			if (!query.trim()) {
+				setFilteredAddresses([]);
+				setShowSearchResults(false);
+				return;
+			}
+
+			setIsSearching(true);
+			const searchText = query.toLowerCase().trim();
+
+			// Arama işlemi için timeout ekle
+			setTimeout(() => {
+				const filtered = addresses.filter((address) => address.title.toLowerCase().includes(searchText) || address.address.toLowerCase().includes(searchText));
+
+				setFilteredAddresses(filtered);
+				setShowSearchResults(true);
+				setIsSearching(false);
+			}, 300);
+		},
+		[addresses]
+	);
+
+	// Adrese git fonksiyonu
+	const handleAddressSelect = useCallback(
+		(address: Address) => {
+			setShowSearchResults(false);
+			setSearchQuery('');
+			handleMarkerPress(address);
+
+			mapRef.current?.animateToRegion(
+				{
+					latitude: address.latitude,
+					longitude: address.longitude,
+					latitudeDelta: 0.01,
+					longitudeDelta: 0.01
+				},
+				1000
+			);
+		},
+		[handleMarkerPress]
+	);
+
+	// Konuma git fonksiyonu
+	const goToCurrentLocation = useCallback(async () => {
+		try {
+			const { status } = await Location.requestForegroundPermissionsAsync();
+			if (status !== 'granted') {
+				Alert.alert('Konum İzni Gerekli', 'Konumunuza gitmek için konum iznine ihtiyacımız var.', [{ text: 'Tamam' }]);
+				return;
+			}
+
+			const location = await Location.getCurrentPositionAsync({
+				accuracy: Location.Accuracy.Balanced
+			});
+
+			mapRef.current?.animateToRegion(
+				{
+					latitude: location.coords.latitude,
+					longitude: location.coords.longitude,
+					latitudeDelta: 0.01,
+					longitudeDelta: 0.01
+				},
+				1000
+			);
+		} catch (error) {
+			console.error('Konum alınırken hata:', error);
+			Alert.alert('Hata', 'Konumunuz alınamadı. Lütfen tekrar deneyin.');
+		}
+	}, []);
+
 	if (!user) {
 		return (
 			<View style={styles.container}>
@@ -719,7 +1014,6 @@ export default function RoutesScreen() {
 						</View>
 						<Text style={styles.noAuthTitle}>Rotalarınızı Planlayın</Text>
 						<Text style={styles.noAuthDescription}>Rotalarınızı planlamak ve kaydetmek için giriş yapın veya yeni bir hesap oluşturun.</Text>
-						<AuthButtons />
 					</View>
 				</View>
 			</View>
@@ -728,9 +1022,77 @@ export default function RoutesScreen() {
 
 	return (
 		<View style={styles.container}>
-			<MapView ref={mapRef} style={styles.map} initialRegion={initialRegion} showsUserLocation showsMyLocationButton onMapReady={onMapReady} maxZoomLevel={18} minZoomLevel={3}>
+			<MapView
+				ref={mapRef}
+				style={styles.map}
+				initialRegion={initialRegion}
+				showsUserLocation
+				showsMyLocationButton={false}
+				showsCompass={false}
+				customMapStyle={mapStyle}
+				onMapReady={onMapReady}
+			>
 				{markers}
 			</MapView>
+
+			<TouchableOpacity style={styles.locationButton} onPress={goToCurrentLocation}>
+				<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.locationButtonGradient}>
+					<Ionicons name='locate' size={24} color='#fff' />
+				</LinearGradient>
+			</TouchableOpacity>
+
+			<View style={styles.searchContainer}>
+				<InputField
+					placeholder={addresses.length === 0 ? 'Önce adres eklemelisiniz' : 'Adres ara...'}
+					value={searchQuery}
+					onChangeText={handleSearch}
+					leftIcon={<Ionicons name='search' size={20} color={addresses.length === 0 ? '#999' : '#666666'} />}
+					containerStyle={{
+						...styles.searchInput,
+						...(addresses.length === 0 ? styles.disabledInput : {})
+					}}
+					autoCapitalize='none'
+					autoCorrect={false}
+					editable={addresses.length > 0}
+				/>
+
+				{showSearchResults && (
+					<View style={styles.searchResults}>
+						{isSearching ? (
+							<View style={styles.searchMessage}>
+								<ActivityIndicator size='small' color={colors.primary.light} />
+								<Text style={styles.messageText}>Aranıyor...</Text>
+							</View>
+						) : filteredAddresses.length === 0 ? (
+							<View style={styles.searchMessage}>
+								<Ionicons name='alert-circle-outline' size={20} color={colors.text.secondary} />
+								<Text style={styles.messageText}>Adres bulunamadı</Text>
+							</View>
+						) : (
+							<ScrollView style={styles.resultsList} keyboardShouldPersistTaps='handled'>
+								{filteredAddresses.map((address) => (
+									<TouchableOpacity key={address.id} style={styles.resultItem} onPress={() => handleAddressSelect(address)}>
+										<View style={styles.resultIcon}>
+											<Ionicons
+												name={address.is_favorite ? 'star' : 'location'}
+												size={20}
+												color={address.is_favorite ? colors.primary.light : colors.text.secondary}
+											/>
+										</View>
+										<View style={styles.resultInfo}>
+											<Text style={styles.resultTitle}>{address.title}</Text>
+											<Text style={styles.resultAddress} numberOfLines={1}>
+												{address.address}
+											</Text>
+										</View>
+										<Ionicons name='chevron-forward' size={20} color={colors.text.secondary} />
+									</TouchableOpacity>
+								))}
+							</ScrollView>
+						)}
+					</View>
+				)}
+			</View>
 
 			<InfoCard addresses={addresses} />
 
@@ -832,7 +1194,7 @@ export default function RoutesScreen() {
 				</Animated.View>
 			)}
 
-			<CustomAlert
+			<ModalAlert
 				visible={showNavigationAlert}
 				title={userLocation ? 'Harita Seçin' : 'Hata'}
 				message={userLocation ? 'Hangi harita uygulamasını kullanmak istersiniz?' : 'Konumunuz alınamadı. Lütfen konum izinlerini kontrol edin.'}

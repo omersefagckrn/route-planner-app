@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { InputField } from '../../components/InputField';
+import { BtnPrimary } from '../../components/BtnPrimary';
+import { OverlayLoading } from '../../components/OverlayLoading';
 import { colors } from '../../lib/theme';
-import { AppDispatch, RootState } from '../../store/store';
+import { AppDispatch, RootState } from '../../store/rootStore';
 import { updateExistingAddress, fetchFavorites, fetchAddresses } from '../../store/features/addressSlice';
 import { addressSchema } from '../../schemas/address';
 import * as yup from 'yup';
@@ -166,7 +166,7 @@ export default function EditAddressModal() {
 				)}
 
 				<View style={styles.formGroup}>
-					<Input
+					<InputField
 						label='Başlık'
 						placeholder='Örn: Ev, İş, Spor Salonu'
 						value={formData.title}
@@ -177,7 +177,7 @@ export default function EditAddressModal() {
 						error={errors.title}
 					/>
 
-					<Input
+					<InputField
 						label='Adres'
 						placeholder='Tam adresi girin'
 						value={formData.address}
@@ -192,7 +192,7 @@ export default function EditAddressModal() {
 				</View>
 
 				<View style={styles.buttonContainer}>
-					<Button title='Haritadan Konum Seç' variant='secondary' onPress={handlePickLocation} style={styles.mapButton} />
+					<BtnPrimary title='Haritadan Konum Seç' variant='secondary' onPress={handlePickLocation} style={styles.mapButton} titleStyle={{ color: '#fff' }} />
 
 					<TouchableOpacity
 						style={[styles.favoriteButton, formData.is_favorite && styles.favoriteButtonActive, loading && styles.disabledButton]}
@@ -213,7 +213,7 @@ export default function EditAddressModal() {
 				</View>
 			</ScrollView>
 
-			{loading && <LoadingOverlay visible={true} />}
+			{loading && <OverlayLoading visible={true} />}
 		</KeyboardAvoidingView>
 	);
 }

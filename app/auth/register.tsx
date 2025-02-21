@@ -4,11 +4,11 @@ import { Link, router } from 'expo-router';
 import { Formik } from 'formik';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/useStore';
 import { signUp, signIn, clearError } from '../../store/features/authSlice';
-import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
+import { OverlayLoading } from '../../components/OverlayLoading';
+import { InputField } from '../../components/InputField';
+import { BtnPrimary } from '../../components/BtnPrimary';
 import { RegisterFormValues, RegisterSchema } from '@/schemas/auth';
 import { Mask } from 'react-native-mask-input';
 
@@ -47,7 +47,7 @@ export default function RegisterScreen() {
 				</View>
 			</LinearGradient>
 
-			<LoadingOverlay visible={isLoading} message='Kayıt yapılıyor...' />
+			<OverlayLoading visible={isLoading} message='Kayıt yapılıyor...' />
 
 			{error || registrationError ? (
 				<View style={styles.errorContainer}>
@@ -73,72 +73,73 @@ export default function RegisterScreen() {
 							<View style={styles.inputGroup}>
 								<View style={styles.inputRow}>
 									<View style={styles.inputHalf}>
-										<Input
+										<InputField
 											label='Ad'
 											placeholder='John'
 											value={values.firstName}
 											onChangeText={handleChange('firstName')}
 											onBlur={handleBlur('firstName')}
-											error={touched.firstName && errors.firstName}
+											error={touched.firstName && errors.firstName ? errors.firstName : undefined}
 										/>
 									</View>
 									<View style={styles.inputHalf}>
-										<Input
+										<InputField
 											label='Soyad'
 											placeholder='Doe'
 											value={values.lastName}
 											onChangeText={handleChange('lastName')}
 											onBlur={handleBlur('lastName')}
-											error={touched.lastName && errors.lastName}
+											error={touched.lastName && errors.lastName ? errors.lastName : undefined}
 										/>
 									</View>
 								</View>
 
-								<Input
+								<InputField
 									label='E-posta Adresi'
 									placeholder='ornek@email.com'
 									value={values.email}
 									onChangeText={handleChange('email')}
 									onBlur={handleBlur('email')}
-									error={touched.email && errors.email}
+									error={touched.email && errors.email ? errors.email : undefined}
 									keyboardType='email-address'
 									autoCapitalize='none'
 								/>
 
-								<Input
+								<InputField
 									label='Telefon Numarası'
 									placeholder='(5XX) XXX-XXXX'
 									value={values.phone}
 									onChangeText={handleChange('phone')}
 									onBlur={handleBlur('phone')}
-									error={touched.phone && errors.phone}
+									error={touched.phone && errors.phone ? errors.phone : undefined}
 									keyboardType='numeric'
+									/* @ts-ignore */
 									mask={phoneMask}
 								/>
 
-								<Input
+								<InputField
 									label='Şifre'
 									placeholder='••••••'
 									value={values.password}
 									onChangeText={handleChange('password')}
 									onBlur={handleBlur('password')}
-									error={touched.password && errors.password}
+									error={touched.password && errors.password ? errors.password : undefined}
 									secureTextEntry
 								/>
 
-								<Input
+								<InputField
 									label='Şifre Tekrarı'
 									placeholder='••••••'
 									value={values.confirmPassword}
 									onChangeText={handleChange('confirmPassword')}
 									onBlur={handleBlur('confirmPassword')}
-									error={touched.confirmPassword && errors.confirmPassword}
+									error={touched.confirmPassword && errors.confirmPassword ? errors.confirmPassword : undefined}
 									secureTextEntry
 								/>
 							</View>
 
 							<View style={styles.actionGroup}>
-								<Button onPress={() => handleSubmit()} title='Hesap Oluştur' loading={isLoading} />
+								<BtnPrimary onPress={() => handleSubmit()} title='Hesap Oluştur' loading={isLoading} />
 
 								<Link href='/auth/login' asChild>
 									<TouchableOpacity style={styles.loginButton}>
