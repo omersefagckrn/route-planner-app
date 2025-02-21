@@ -29,14 +29,14 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name='routes'
 				options={{
-					title: 'Rotalar',
+					title: 'Haritada Gör',
 					tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? 'map' : 'map-outline'} size={24} color={color} />
 				}}
 			/>
 			<Tabs.Screen
 				name='address-book'
 				options={{
-					title: 'Adresler',
+					title: 'Adresleriniz',
 					tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={24} color={color} />
 				}}
 			/>

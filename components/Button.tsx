@@ -29,12 +29,12 @@ const styles = StyleSheet.create({
 		backgroundColor: colors.primary.dark
 	},
 	secondary: {
-		backgroundColor: '#fff',
+		backgroundColor: colors.primary.light,
 		borderWidth: 1,
 		borderColor: colors.border.default
 	},
 	title: {
-		color: '#fff',
+		color: colors.text.primary,
 		fontSize: 15,
 		fontWeight: '600'
 	},

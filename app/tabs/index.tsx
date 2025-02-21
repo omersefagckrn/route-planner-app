@@ -6,22 +6,7 @@ import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/store/store';
 import { getCurrentUser } from '../../store/features/authSlice';
-import Animated, {
-	useAnimatedScrollHandler,
-	useSharedValue,
-	interpolate,
-	useAnimatedStyle,
-	withSpring,
-	withTiming,
-	withSequence,
-	withDelay,
-	Easing,
-	FadeIn,
-	FadeInDown,
-	FadeInUp,
-	ZoomIn,
-	Layout
-} from 'react-native-reanimated';
+import Animated, { useAnimatedScrollHandler, useSharedValue, interpolate, useAnimatedStyle, withSpring, FadeIn, FadeInDown, FadeInUp, ZoomIn, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../../lib/theme';

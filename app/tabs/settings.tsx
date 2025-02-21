@@ -125,9 +125,6 @@ export default function SettingsScreen() {
 							</Text>
 							<Text style={styles.userEmail}>{user?.email}</Text>
 						</View>
-						<TouchableOpacity style={styles.editButton} onPress={() => router.push('/(modals)/edit-profile')}>
-							<Ionicons name='pencil-outline' size={20} color='#fff' />
-						</TouchableOpacity>
 					</View>
 				</LinearGradient>
 
