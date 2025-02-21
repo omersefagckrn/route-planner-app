@@ -1,20 +1,49 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Linking } from 'react-native';
 import { Link, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootState, AppDispatch } from '@/store/store';
 import { getCurrentUser, signOut } from '../../store/features/authSlice';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
+import { AuthButtons } from '../../components/AuthButtons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
 	const dispatch = useDispatch<AppDispatch>();
 	const { user, isLoading } = useSelector((state: RootState) => state.auth);
+	const [locationPermission, setLocationPermission] = useState<string | null>(null);
+
+	const userInitials = useMemo(() => {
+		if (!user?.user_metadata?.first_name && !user?.user_metadata?.last_name) return '??';
+		const firstInitial = user.user_metadata.first_name?.[0] || '';
+		const lastInitial = user.user_metadata.last_name?.[0] || '';
+		return `${firstInitial}${lastInitial}`.toUpperCase();
+	}, [user]);
 
 	useEffect(() => {
-		dispatch(getCurrentUser());
+		const loadUserData = async () => {
+			await dispatch(getCurrentUser());
+			checkLocationPermission();
+		};
+		loadUserData();
 	}, [dispatch]);
+
+	const checkLocationPermission = async () => {
+		const locationStatus = await Location.getForegroundPermissionsAsync();
+		setLocationPermission(locationStatus.status);
+	};
+
+	const requestLocationPermission = async () => {
+		const { status } = await Location.requestForegroundPermissionsAsync();
+		setLocationPermission(status);
+		if (status !== 'granted') {
+			Linking.openSettings();
+		}
+	};
 
 	const handleSignOut = () => {
 		dispatch(signOut());
@@ -35,20 +64,17 @@ export default function SettingsScreen() {
 	// Kullanıcı giriş yapmamışsa
 	if (!user) {
 		return (
-			<View style={styles.container}>
-				<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-					<View style={styles.headerIcon}>
-						<Ionicons name='settings-outline' size={40} color='#fff' />
-					</View>
+			<SafeAreaView style={styles.container}>
+				<View style={styles.header}>
 					<Text style={styles.title}>Kişiselleştirme</Text>
-					<Text style={styles.description}>Daha iyi bir deneyim için hesap oluşturun ve uygulamayı kişiselleştirin</Text>
-				</LinearGradient>
+					<Text style={styles.subtitle}>Daha iyi bir deneyim için hesabınızı kişiselleştirin</Text>
+				</View>
 
 				<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 					<View style={styles.featureList}>
 						<View style={styles.featureItem}>
 							<View style={styles.featureIcon}>
-								<Ionicons name='person-circle-outline' size={24} color='#6366F1' />
+								<Ionicons name='person-circle-outline' size={24} color='#1A1A1A' />
 							</View>
 							<View style={styles.featureText}>
 								<Text style={styles.featureTitle}>Kişisel Profil</Text>
@@ -58,7 +84,7 @@ export default function SettingsScreen() {
 
 						<View style={styles.featureItem}>
 							<View style={styles.featureIcon}>
-								<Ionicons name='star-outline' size={24} color='#6366F1' />
+								<Ionicons name='star-outline' size={24} color='#1A1A1A' />
 							</View>
 							<View style={styles.featureText}>
 								<Text style={styles.featureTitle}>Favori Rotalar</Text>
@@ -68,7 +94,7 @@ export default function SettingsScreen() {
 
 						<View style={styles.featureItem}>
 							<View style={styles.featureIcon}>
-								<Ionicons name='sync-outline' size={24} color='#6366F1' />
+								<Ionicons name='sync-outline' size={24} color='#1A1A1A' />
 							</View>
 							<View style={styles.featureText}>
 								<Text style={styles.featureTitle}>Otomatik Senkronizasyon</Text>
@@ -77,73 +103,102 @@ export default function SettingsScreen() {
 						</View>
 					</View>
 
-					<View style={styles.authButtons}>
-						<Link href='/auth/login' asChild>
-							<TouchableOpacity style={styles.loginButton}>
-								<Ionicons name='log-in-outline' size={20} color='#6366F1' />
-								<Text style={styles.loginButtonText}>Giriş Yap</Text>
-							</TouchableOpacity>
-						</Link>
-
-						<Link href='/auth/register' asChild>
-							<TouchableOpacity style={styles.registerButton}>
-								<Ionicons name='person-add-outline' size={20} color='#fff' />
-								<Text style={styles.registerButtonText}>Hesap Oluştur</Text>
-							</TouchableOpacity>
-						</Link>
+					<View style={styles.authButtonsContainer}>
+						<AuthButtons />
 					</View>
 				</ScrollView>
-			</View>
+			</SafeAreaView>
 		);
 	}
 
 	return (
-		<View style={styles.container}>
-			<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-				<View style={styles.userInfo}>
-					<View style={styles.userAvatar}>
-						<Text style={styles.userInitials}>
-							{user.first_name[0]}
-							{user.last_name[0]}
-						</Text>
-					</View>
-					<View style={styles.userDetails}>
-						<Text style={styles.userName}>
-							{user.first_name} {user.last_name}
-						</Text>
-						<Text style={styles.userEmail}>{user.email}</Text>
-					</View>
-				</View>
-			</LinearGradient>
-
+		<SafeAreaView style={styles.container}>
 			<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+				<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+					<View style={styles.profileContainer}>
+						<View style={styles.userAvatar}>
+							<Text style={styles.userInitials}>{userInitials}</Text>
+						</View>
+						<View style={styles.userDetails}>
+							<Text style={styles.userName}>
+								{user?.user_metadata?.first_name} {user?.user_metadata?.last_name}
+							</Text>
+							<Text style={styles.userEmail}>{user?.email}</Text>
+						</View>
+						<TouchableOpacity style={styles.editButton} onPress={() => router.push('/(modals)/edit-profile')}>
+							<Ionicons name='pencil-outline' size={20} color='#fff' />
+						</TouchableOpacity>
+					</View>
+				</LinearGradient>
+
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>İzinler</Text>
+					<TouchableOpacity style={styles.menuItem} onPress={locationPermission === 'granted' ? undefined : requestLocationPermission}>
+						<View style={styles.menuItemLeft}>
+							<Ionicons name='location-outline' size={24} color={locationPermission === 'granted' ? '#4CAF50' : '#1A1A1A'} />
+							<View style={styles.permissionInfo}>
+								<Text style={styles.menuItemText}>Konum İzni</Text>
+								<Text style={[styles.permissionStatus, { color: locationPermission === 'granted' ? '#4CAF50' : '#FF3B30' }]}>
+									{locationPermission === 'granted' ? 'İzin Verildi' : 'İzin Verilmedi'}
+								</Text>
+							</View>
+						</View>
+						{locationPermission !== 'granted' && <Ionicons name='chevron-forward' size={24} color='#1A1A1A' />}
+					</TouchableOpacity>
+				</View>
+
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Hesap</Text>
 					<Link href='/(modals)/edit-profile' asChild>
 						<TouchableOpacity style={styles.menuItem}>
 							<View style={styles.menuItemLeft}>
-								<Ionicons name='person-outline' size={24} color='#6366F1' />
+								<Ionicons name='person-outline' size={24} color='#1A1A1A' />
 								<Text style={styles.menuItemText}>Profili Düzenle</Text>
 							</View>
-							<Ionicons name='chevron-forward' size={24} color='#6366F1' />
+							<Ionicons name='chevron-forward' size={24} color='#1A1A1A' />
 						</TouchableOpacity>
 					</Link>
 
 					<TouchableOpacity style={styles.menuItem} onPress={handleChangePassword}>
 						<View style={styles.menuItemLeft}>
-							<Ionicons name='key-outline' size={24} color='#6366F1' />
+							<Ionicons name='key-outline' size={24} color='#1A1A1A' />
 							<Text style={styles.menuItemText}>Şifre Değiştir</Text>
 						</View>
-						<Ionicons name='chevron-forward' size={24} color='#6366F1' />
+						<Ionicons name='chevron-forward' size={24} color='#1A1A1A' />
 					</TouchableOpacity>
 				</View>
+
+				{__DEV__ && (
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>Geliştirici</Text>
+						<TouchableOpacity
+							style={styles.menuItem}
+							onPress={async () => {
+								try {
+									await AsyncStorage.removeItem('hasLaunched');
+									await AsyncStorage.removeItem('user-preferences');
+									router.replace('/');
+								} catch (error) {
+									console.error('Storage temizlenirken hata:', error);
+									alert('Bir hata oluştu');
+								}
+							}}
+						>
+							<View style={styles.menuItemLeft}>
+								<Ionicons name='refresh-outline' size={24} color='#1A1A1A' />
+								<Text style={styles.menuItemText}>Onboarding Sıfırla</Text>
+							</View>
+							<Ionicons name='chevron-forward' size={24} color='#1A1A1A' />
+						</TouchableOpacity>
+					</View>
+				)}
 
 				<TouchableOpacity style={[styles.signOutButton, { marginTop: 12 }]} onPress={handleSignOut}>
 					<Ionicons name='log-out-outline' size={24} color='#FF3B30' />
 					<Text style={styles.signOutText}>Çıkış Yap</Text>
 				</TouchableOpacity>
 			</ScrollView>
-		</View>
+		</SafeAreaView>
 	);
 }
 
@@ -152,126 +207,38 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#fff'
 	},
+	content: {
+		flex: 1
+	},
 	header: {
-		paddingTop: Platform.OS === 'ios' ? 60 : 40,
-		paddingBottom: 30,
-		paddingHorizontal: 20,
-		borderBottomLeftRadius: 30,
-		borderBottomRightRadius: 30,
+		padding: 24,
+		borderBottomLeftRadius: 24,
+		borderBottomRightRadius: 24,
+		marginBottom: 8,
 		...Platform.select({
 			ios: {
-				shadowColor: '#6366F1',
+				shadowColor: '#000',
 				shadowOffset: { width: 0, height: 4 },
-				shadowOpacity: 0.2,
-				shadowRadius: 8
+				shadowOpacity: 0.15,
+				shadowRadius: 12
 			},
 			android: {
 				elevation: 8
 			}
 		})
 	},
-	headerIcon: {
-		width: 80,
-		height: 80,
-		borderRadius: 40,
-		backgroundColor: 'rgba(255, 255, 255, 0.2)',
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginBottom: 20
-	},
 	title: {
-		fontSize: 28,
+		fontSize: 24,
 		fontWeight: 'bold',
-		color: '#fff',
+		color: '#1A1A1A',
 		marginBottom: 8
 	},
-	description: {
+	subtitle: {
 		fontSize: 16,
-		color: 'rgba(255, 255, 255, 0.9)',
+		color: '#666',
 		lineHeight: 22
 	},
-	content: {
-		flex: 1
-	},
-	featureList: {
-		padding: 20,
-		gap: 16
-	},
-	featureItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		backgroundColor: '#F8FAFC',
-		padding: 16,
-		borderRadius: 12,
-		...Platform.select({
-			ios: {
-				shadowColor: '#6366F1',
-				shadowOffset: { width: 0, height: 2 },
-				shadowOpacity: 0.1,
-				shadowRadius: 4
-			},
-			android: {
-				elevation: 2
-			}
-		})
-	},
-	featureIcon: {
-		width: 48,
-		height: 48,
-		borderRadius: 24,
-		backgroundColor: 'rgba(99, 102, 241, 0.1)',
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginRight: 16
-	},
-	featureText: {
-		flex: 1
-	},
-	featureTitle: {
-		fontSize: 16,
-		fontWeight: '600',
-		color: '#1F2937',
-		marginBottom: 4
-	},
-	featureDescription: {
-		fontSize: 14,
-		color: '#6B7280'
-	},
-	authButtons: {
-		padding: 20,
-		gap: 12
-	},
-	loginButton: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 8,
-		backgroundColor: '#fff',
-		paddingVertical: 16,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: '#6366F1'
-	},
-	loginButtonText: {
-		color: '#6366F1',
-		fontSize: 16,
-		fontWeight: '600'
-	},
-	registerButton: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 8,
-		backgroundColor: '#6366F1',
-		paddingVertical: 16,
-		borderRadius: 12
-	},
-	registerButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600'
-	},
-	userInfo: {
+	profileContainer: {
 		flexDirection: 'row',
 		alignItems: 'center'
 	},
@@ -282,7 +249,9 @@ const styles = StyleSheet.create({
 		backgroundColor: 'rgba(255, 255, 255, 0.2)',
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginRight: 16
+		marginRight: 16,
+		borderWidth: 2,
+		borderColor: 'rgba(255, 255, 255, 0.3)'
 	},
 	userInitials: {
 		fontSize: 24,
@@ -300,7 +269,63 @@ const styles = StyleSheet.create({
 	},
 	userEmail: {
 		fontSize: 14,
-		color: 'rgba(255, 255, 255, 0.9)'
+		color: 'rgba(255, 255, 255, 0.8)'
+	},
+	editButton: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		backgroundColor: 'rgba(255, 255, 255, 0.2)',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginLeft: 12
+	},
+	featureList: {
+		padding: 20,
+		gap: 16
+	},
+	featureItem: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		padding: 16,
+		backgroundColor: '#F9FAFB',
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: '#E5E7EB'
+	},
+	featureIcon: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: '#fff',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: 12,
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.1,
+				shadowRadius: 4
+			},
+			android: {
+				elevation: 2
+			}
+		})
+	},
+	featureText: {
+		flex: 1
+	},
+	featureTitle: {
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#1A1A1A',
+		marginBottom: 4
+	},
+	featureDescription: {
+		fontSize: 14,
+		color: '#666',
+		lineHeight: 20
 	},
 	section: {
 		paddingHorizontal: 20,
@@ -317,19 +342,41 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
+		paddingVertical: 16,
+		paddingHorizontal: 20,
 		backgroundColor: '#F8FAFC',
-		padding: 16,
 		borderRadius: 12,
-		marginBottom: 12
+		marginBottom: 8,
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.1,
+				shadowRadius: 4
+			},
+			android: {
+				elevation: 2
+			}
+		})
 	},
 	menuItemLeft: {
 		flexDirection: 'row',
 		alignItems: 'center',
+		flex: 1,
 		gap: 12
 	},
 	menuItemText: {
 		fontSize: 16,
-		color: '#1F2937'
+		fontWeight: '600',
+		color: '#1A1A1A'
+	},
+	permissionInfo: {
+		flex: 1
+	},
+	permissionStatus: {
+		fontSize: 13,
+		marginTop: 2,
+		fontWeight: '600'
 	},
 	signOutButton: {
 		flexDirection: 'row',
@@ -346,5 +393,9 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: '600',
 		color: '#FF3B30'
+	},
+	authButtonsContainer: {
+		padding: 20,
+		marginTop: 'auto'
 	}
 });

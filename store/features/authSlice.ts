@@ -1,269 +1,236 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import Toast from 'react-native-toast-message';
-import { apiService, UserProfile } from '../../services/api';
 import { supabase } from '../../lib/supabase';
-// Async Thunks
-export const signIn = createAsyncThunk('auth/signIn', async ({ email, password }: { email: string; password: string }, { dispatch }) => {
-	const { user, error } = await apiService.signIn(email, password);
-	if (error) throw error;
-
-	await AsyncStorage.setItem('hasLaunched', 'true');
-
-	Toast.show({
-		type: 'success',
-		text1: 'Başarılı',
-		text2: 'Giriş yapıldı',
-		position: 'top',
-		visibilityTime: 2000
-	});
-
-	router.replace('/tabs');
-	return user;
-});
-
-export const signUp = createAsyncThunk('auth/signUp', async (userData: { email: string; password: string; firstName: string; lastName: string; phone: string }) => {
-	const { user, error } = await apiService.signUp(userData);
-	if (error) throw error;
-
-	await AsyncStorage.setItem('hasLaunched', 'true');
-
-	Toast.show({
-		type: 'success',
-		text1: 'Başarılı',
-		text2: 'Kayıt işlemi tamamlandı',
-		position: 'top',
-		visibilityTime: 2000
-	});
-
-	router.replace('/tabs');
-	return user;
-});
-
-export const signOut = createAsyncThunk('auth/signOut', async (_, { dispatch }) => {
-	const { error } = await apiService.signOut();
-	if (error) throw error;
-
-	Toast.show({
-		type: 'success',
-		text1: 'Başarılı',
-		text2: 'Çıkış yapıldı',
-		position: 'top',
-		visibilityTime: 2000
-	});
-
-	router.replace('/tabs');
-});
-
-export const updateProfile = createAsyncThunk('auth/updateProfile', async ({ userId, updates }: { userId: string; updates: Partial<UserProfile> }, { dispatch }) => {
-	const { user, error } = await apiService.updateProfile(userId, updates);
-	if (error) throw error;
-
-	Toast.show({
-		type: 'success',
-		text1: 'Başarılı',
-		text2: 'Profil güncellendi',
-		position: 'top',
-		visibilityTime: 2000
-	});
-
-	// Önce router.back() çağrısını yap, sonra kullanıcı bilgilerini güncelle
-	router.back();
-	await dispatch(getCurrentUser());
-	return user;
-});
-
-export const updatePassword = createAsyncThunk('auth/updatePassword', async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }, { dispatch }) => {
-	const { error } = await apiService.updatePassword({ currentPassword, newPassword });
-	if (error) throw error;
-
-	Toast.show({
-		type: 'success',
-		text1: 'Başarılı',
-		text2: 'Şifre güncellendi',
-		position: 'top',
-		visibilityTime: 2000
-	});
-
-	// Şifre değiştikten sonra kullanıcı bilgilerini yeniden al
-	dispatch(getCurrentUser());
-	router.back();
-});
-
-export const resetApp = createAsyncThunk('auth/resetApp', async () => {
-	try {
-		await AsyncStorage.removeItem('hasLaunched');
-		Toast.show({
-			type: 'success',
-			text1: 'Başarılı',
-			text2: 'Uygulama sıfırlandı',
-			position: 'top',
-			visibilityTime: 2000
-		});
-		router.replace('/');
-	} catch (error: any) {
-		Toast.show({
-			type: 'error',
-			text1: 'Hata',
-			text2: 'Uygulama sıfırlanırken bir hata oluştu',
-			position: 'top',
-			visibilityTime: 2000
-		});
-		throw error;
-	}
-});
-
-export const getCurrentUser = createAsyncThunk('auth/getCurrentUser', async (_, { rejectWithValue }) => {
-	try {
-		const {
-			data: { user: currentUser }
-		} = await supabase.auth.getUser();
-
-		if (!currentUser) {
-			return rejectWithValue(null); // Sessiz hata - kullanıcı giriş yapmamış
-		}
-
-		const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-
-		if (error) throw error;
-		if (!profile) throw new Error('Profil bulunamadı');
-
-		return profile;
-	} catch (error: any) {
-		throw new Error(error.message || 'Kullanıcı bilgileri alınamadı');
-	}
-});
+import { User } from '@supabase/supabase-js';
 
 interface AuthState {
+	user: User | null;
 	isLoading: boolean;
 	error: string | null;
-	user: UserProfile | null;
 }
 
+export const signIn = createAsyncThunk('auth/signIn', async ({ email, password }: { email: string; password: string }) => {
+	try {
+		const { data, error } = await supabase.auth.signInWithPassword({
+			email,
+			password
+		});
+
+		if (error) {
+			if (error.message.includes('Invalid login credentials')) {
+				throw new Error('E-posta adresi veya şifre hatalı');
+			}
+			throw error;
+		}
+
+		const {
+			data: { user },
+			error: userError
+		} = await supabase.auth.getUser();
+
+		if (userError) throw userError;
+		if (!user) throw new Error('Kullanıcı bulunamadı');
+
+		return user;
+	} catch (error: any) {
+		throw new Error(error.message || 'Giriş yapılırken bir hata oluştu');
+	}
+});
+
+export const signUp = createAsyncThunk('auth/signUp', async ({ email, password, firstName, lastName }: { email: string; password: string; firstName: string; lastName: string }) => {
+	try {
+		const { data: authData, error: authError } = await supabase.auth.signUp({
+			email,
+			password,
+			options: {
+				data: {
+					first_name: firstName,
+					last_name: lastName
+				}
+			}
+		});
+
+		if (authError) {
+			if (authError.message.includes('email')) {
+				throw new Error('Bu e-posta adresi zaten kullanımda');
+			}
+			throw authError;
+		}
+
+		// Kayıt sonrası otomatik giriş yap
+		const { data, error } = await supabase.auth.signInWithPassword({
+			email,
+			password
+		});
+
+		if (error) throw error;
+		return data.user;
+	} catch (error: any) {
+		throw new Error(error.message || 'Kayıt olurken bir hata oluştu');
+	}
+});
+
+export const signOut = createAsyncThunk('auth/signOut', async () => {
+	const { error } = await supabase.auth.signOut();
+	if (error) throw error;
+});
+
+export const getCurrentUser = createAsyncThunk('auth/getCurrentUser', async () => {
+	const {
+		data: { user },
+		error
+	} = await supabase.auth.getUser();
+
+	if (error) throw error;
+	if (!user) throw new Error('Kullanıcı bulunamadı');
+
+	return user;
+});
+
+export const updateProfile = createAsyncThunk('auth/updateProfile', async (updates: { first_name?: string; last_name?: string }) => {
+	try {
+		// Önce auth user'ı güncelle
+		const { data: userData, error: userError } = await supabase.auth.updateUser({
+			data: {
+				...(updates.first_name && { first_name: updates.first_name }),
+				...(updates.last_name && { last_name: updates.last_name })
+			}
+		});
+
+		if (userError) throw userError;
+		if (!userData?.user) throw new Error('Kullanıcı bilgileri güncellenemedi');
+
+		// Profiles tablosunu güncelle
+		if (updates.first_name || updates.last_name) {
+			const { data: profileData, error: profileError } = await supabase.rpc('update_user_profile', {
+				user_id: userData.user.id,
+				user_email: userData.user.email,
+				user_first_name: updates.first_name || userData.user.user_metadata?.first_name,
+				user_last_name: updates.last_name || userData.user.user_metadata?.last_name
+			});
+
+			if (profileError) {
+				console.error('Profil güncelleme hatası:', profileError);
+				throw new Error('Profil bilgileri güncellenirken bir hata oluştu');
+			}
+
+			console.log('Profil güncelleme sonucu:', profileData);
+		}
+
+		// Güncel kullanıcı bilgilerini al
+		const {
+			data: { user: updatedUser },
+			error: getUserError
+		} = await supabase.auth.getUser();
+
+		if (getUserError) throw getUserError;
+		if (!updatedUser) throw new Error('Güncel kullanıcı bilgileri alınamadı');
+
+		return updatedUser;
+	} catch (error: any) {
+		console.error('Profil güncelleme hatası:', error);
+		throw new Error(error.message || 'Profil güncellenirken bir hata oluştu');
+	}
+});
+
+export const changePassword = createAsyncThunk('auth/changePassword', async ({ password }: { password: string }) => {
+	const { data, error } = await supabase.auth.updateUser({
+		password
+	});
+
+	if (error) throw error;
+
+	return data.user;
+});
+
 const initialState: AuthState = {
+	user: null,
 	isLoading: false,
-	error: null,
-	user: null
+	error: null
 };
 
 const authSlice = createSlice({
 	name: 'auth',
 	initialState,
 	reducers: {
-		setUser: (state, action) => {
-			state.user = action.payload;
-			state.isLoading = false;
-			state.error = null;
-		},
 		clearError: (state) => {
 			state.error = null;
-		},
-		resetState: () => initialState
+		}
 	},
 	extraReducers: (builder) => {
-		builder
-			// Get Current User
-			.addCase(getCurrentUser.pending, (state) => {
-				state.isLoading = true;
-				state.error = null;
-			})
-			.addCase(getCurrentUser.fulfilled, (state, action) => {
-				state.isLoading = false;
-				state.error = null;
-				state.user = action.payload;
-			})
-			.addCase(getCurrentUser.rejected, (state, action) => {
-				state.isLoading = false;
-				// Eğer payload null ise (kullanıcı giriş yapmamış), error mesajı gösterme
-				if (action.payload === null) {
-					state.error = null;
-					state.user = null;
-				} else {
-					state.error = action.error.message || 'Kullanıcı bilgileri alınamadı';
-				}
-			})
-			// Sign In
-			.addCase(signIn.pending, (state) => {
-				state.isLoading = true;
-				state.error = null;
-			})
+		builder.addCase(signIn.pending, (state) => {
+			state.isLoading = true;
+			state.error = null;
+		})
 			.addCase(signIn.fulfilled, (state, action) => {
 				state.isLoading = false;
-				state.error = null;
 				state.user = action.payload;
 			})
 			.addCase(signIn.rejected, (state, action) => {
 				state.isLoading = false;
 				state.error = action.error.message || 'Giriş yapılırken bir hata oluştu';
 			})
-			// Sign Up
 			.addCase(signUp.pending, (state) => {
 				state.isLoading = true;
 				state.error = null;
 			})
 			.addCase(signUp.fulfilled, (state, action) => {
 				state.isLoading = false;
-				state.error = null;
 				state.user = action.payload;
 			})
 			.addCase(signUp.rejected, (state, action) => {
 				state.isLoading = false;
 				state.error = action.error.message || 'Kayıt olurken bir hata oluştu';
 			})
-			// Sign Out
 			.addCase(signOut.pending, (state) => {
 				state.isLoading = true;
 				state.error = null;
 			})
 			.addCase(signOut.fulfilled, (state) => {
-				return initialState; // State'i tamamen sıfırla
+				state.isLoading = false;
+				state.user = null;
 			})
 			.addCase(signOut.rejected, (state, action) => {
 				state.isLoading = false;
 				state.error = action.error.message || 'Çıkış yapılırken bir hata oluştu';
 			})
-			// Update Profile
+			.addCase(getCurrentUser.pending, (state) => {
+				state.isLoading = true;
+				state.error = null;
+			})
+			.addCase(getCurrentUser.fulfilled, (state, action) => {
+				state.isLoading = false;
+				state.user = action.payload;
+			})
+			.addCase(getCurrentUser.rejected, (state, action) => {
+				state.isLoading = false;
+				state.error = action.error.message || 'Kullanıcı bilgileri alınırken bir hata oluştu';
+			})
 			.addCase(updateProfile.pending, (state) => {
 				state.isLoading = true;
 				state.error = null;
 			})
 			.addCase(updateProfile.fulfilled, (state, action) => {
 				state.isLoading = false;
-				state.error = null;
 				state.user = action.payload;
 			})
 			.addCase(updateProfile.rejected, (state, action) => {
 				state.isLoading = false;
 				state.error = action.error.message || 'Profil güncellenirken bir hata oluştu';
 			})
-			// Update Password
-			.addCase(updatePassword.pending, (state) => {
+			.addCase(changePassword.pending, (state) => {
 				state.isLoading = true;
 				state.error = null;
 			})
-			.addCase(updatePassword.fulfilled, (state) => {
+			.addCase(changePassword.fulfilled, (state, action) => {
 				state.isLoading = false;
-				state.error = null;
+				state.user = action.payload;
 			})
-			.addCase(updatePassword.rejected, (state, action) => {
+			.addCase(changePassword.rejected, (state, action) => {
 				state.isLoading = false;
-				state.error = action.error.message || 'Şifre güncellenirken bir hata oluştu';
-			})
-			// Reset App
-			.addCase(resetApp.pending, (state) => {
-				state.isLoading = true;
-				state.error = null;
-			})
-			.addCase(resetApp.fulfilled, () => {
-				return initialState; // State'i tamamen sıfırla
-			})
-			.addCase(resetApp.rejected, (state, action) => {
-				state.isLoading = false;
-				state.error = action.error.message || 'Uygulama sıfırlanırken bir hata oluştu';
+				state.error = action.error.message || 'Şifre değiştirilirken bir hata oluştu';
 			});
 	}
 });
 
-export const { setUser, clearError, resetState } = authSlice.actions;
+export const { clearError } = authSlice.actions;
 export default authSlice.reducer;

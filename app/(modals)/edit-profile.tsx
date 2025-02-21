@@ -1,123 +1,110 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
-import { Formik } from 'formik';
+import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateProfile } from '../../store/features/authSlice';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
-import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
-import { EditProfileFormValues, EditProfileSchema } from '@/schemas/auth';
-import { Mask } from 'react-native-mask-input';
-
-const phoneMask: Mask = ['(', /5/, /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/];
+import type { RootState, AppDispatch } from '@/store/store';
 
 export default function EditProfileScreen() {
-	const dispatch = useAppDispatch();
-	const { isLoading, error, user } = useAppSelector((state) => state.auth);
+	const dispatch = useDispatch<AppDispatch>();
+	const { user, isLoading } = useSelector((state: RootState) => state.auth);
+	const userMetadata = user?.user_metadata;
 
-	if (!user) {
-		return (
-			<View style={styles.container}>
-				<LoadingOverlay visible={true} message='Profil yükleniyor...' />
-			</View>
-		);
-	}
+	const [firstName, setFirstName] = useState(userMetadata?.first_name || '');
+	const [lastName, setLastName] = useState(userMetadata?.last_name || '');
+	const [error, setError] = useState('');
 
-	const handleSubmit = async (values: EditProfileFormValues) => {
-		dispatch(
-			updateProfile({
-				userId: user.id,
-				updates: {
-					first_name: values.first_name,
-					last_name: values.last_name,
-					phone: values.phone
-				}
-			})
-		);
+	const handleUpdateProfile = async () => {
+		try {
+			if (!firstName || !lastName) {
+				setError('Ad ve soyad alanları zorunludur');
+				return;
+			}
+
+			const updates: any = {};
+
+			// Sadece değişen alanları güncelle
+			if (firstName !== userMetadata?.first_name) {
+				updates.first_name = firstName;
+			}
+			if (lastName !== userMetadata?.last_name) {
+				updates.last_name = lastName;
+			}
+
+			// Eğer hiçbir değişiklik yoksa uyarı ver
+			if (Object.keys(updates).length === 0) {
+				setError('Değişiklik yapmadınız');
+				return;
+			}
+
+			await dispatch(updateProfile(updates)).unwrap();
+			router.back();
+		} catch (err: any) {
+			setError(err.message || 'Profil güncellenirken bir hata oluştu');
+		}
 	};
 
 	return (
-		<View style={styles.container}>
-			<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-				<View style={styles.headerContent}>
-					<TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-						<Ionicons name='arrow-back' size={24} color='#fff' />
+		<SafeAreaView style={styles.container}>
+			<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+				<View style={styles.header}>
+					<TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+						<Ionicons name='close' size={24} color='#000' />
 					</TouchableOpacity>
-					<View style={styles.headerTextContainer}>
-						<Text style={styles.title}>Profili Düzenle</Text>
-						<Text style={styles.description}>Kişisel bilgilerinizi güncelleyin</Text>
+					<Text style={styles.title}>Profili Düzenle</Text>
+					<TouchableOpacity
+						style={[styles.saveButton, (!firstName || !lastName) && styles.saveButtonDisabled]}
+						onPress={handleUpdateProfile}
+						disabled={isLoading || !firstName || !lastName}
+					>
+						<Text style={[styles.saveButtonText, (!firstName || !lastName) && styles.saveButtonTextDisabled]}>Kaydet</Text>
+					</TouchableOpacity>
+				</View>
+
+				<View style={styles.form}>
+					<View style={styles.inputContainer}>
+						<Text style={styles.label}>Ad</Text>
+						<TextInput
+							style={styles.input}
+							value={firstName}
+							onChangeText={setFirstName}
+							placeholder='Adınızı girin'
+							placeholderTextColor='#9CA3AF'
+							autoCapitalize='words'
+							autoCorrect={false}
+						/>
 					</View>
-				</View>
-			</LinearGradient>
 
-			<LoadingOverlay visible={isLoading} message='Profil güncelleniyor...' />
+					<View style={styles.inputContainer}>
+						<Text style={styles.label}>Soyad</Text>
+						<TextInput
+							style={styles.input}
+							value={lastName}
+							onChangeText={setLastName}
+							placeholder='Soyadınızı girin'
+							placeholderTextColor='#9CA3AF'
+							autoCapitalize='words'
+							autoCorrect={false}
+						/>
+					</View>
 
-			{error && (
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
-
-			<View style={styles.content}>
-				<Formik
-					initialValues={{
-						first_name: user.first_name || '',
-						last_name: user.last_name || '',
-						phone: user.phone || ''
-					}}
-					validationSchema={EditProfileSchema}
-					onSubmit={handleSubmit}
-					enableReinitialize
-				>
-					{({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-						<View style={styles.form}>
-							<View style={styles.inputGroup}>
-								<View style={styles.inputRow}>
-									<View style={styles.inputHalf}>
-										<Input
-											label='Ad'
-											placeholder='John'
-											value={values.first_name}
-											onChangeText={handleChange('first_name')}
-											onBlur={handleBlur('first_name')}
-											error={touched.first_name && errors.first_name}
-										/>
-									</View>
-									<View style={styles.inputHalf}>
-										<Input
-											label='Soyad'
-											placeholder='Doe'
-											value={values.last_name}
-											onChangeText={handleChange('last_name')}
-											onBlur={handleBlur('last_name')}
-											error={touched.last_name && errors.last_name}
-										/>
-									</View>
-								</View>
-
-								<Input
-									label='Telefon Numarası'
-									placeholder='(5XX) XXX-XXXX'
-									value={values.phone}
-									onChangeText={handleChange('phone')}
-									onBlur={handleBlur('phone')}
-									error={touched.phone && errors.phone}
-									keyboardType='numeric'
-									mask={phoneMask}
-								/>
-							</View>
-
-							<View style={styles.buttonContainer}>
-								<Button onPress={() => handleSubmit()} title='Kaydet' loading={isLoading} />
-							</View>
+					<View style={styles.emailContainer}>
+						<Text style={styles.label}>E-posta</Text>
+						<View style={styles.emailOverlayContainer}>
+							<Text style={styles.emailText}>{user?.email}</Text>
+							<View style={styles.emailOverlay} />
 						</View>
-					)}
-				</Formik>
-			</View>
-		</View>
+						<Text style={styles.emailNote}>E-posta adresi güvenlik nedeniyle değiştirilemez</Text>
+					</View>
+
+					{error ? <Text style={styles.errorText}>{error}</Text> : null}
+				</View>
+
+				<LoadingOverlay visible={isLoading} message='Profil güncelleniyor...' />
+			</KeyboardAvoidingView>
+		</SafeAreaView>
 	);
 }
 
@@ -127,83 +114,90 @@ const styles = StyleSheet.create({
 		backgroundColor: '#fff'
 	},
 	header: {
-		paddingTop: Platform.OS === 'ios' ? 60 : 40,
-		paddingBottom: 30,
-		paddingHorizontal: 20,
-		borderBottomLeftRadius: 30,
-		borderBottomRightRadius: 30,
-		...Platform.select({
-			ios: {
-				shadowColor: '#6366F1',
-				shadowOffset: { width: 0, height: 4 },
-				shadowOpacity: 0.2,
-				shadowRadius: 8
-			},
-			android: {
-				elevation: 8
-			}
-		})
-	},
-	headerContent: {
 		flexDirection: 'row',
-		alignItems: 'center'
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: '#E5E7EB'
 	},
 	backButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: 'rgba(255, 255, 255, 0.2)',
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginRight: 16
-	},
-	headerTextContainer: {
-		flex: 1
+		padding: 8
 	},
 	title: {
-		fontSize: 28,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginBottom: 8
+		fontSize: 17,
+		fontWeight: '600',
+		color: '#111827'
 	},
-	description: {
+	saveButton: {
+		paddingVertical: 8,
+		paddingHorizontal: 12
+	},
+	saveButtonDisabled: {
+		opacity: 0.5
+	},
+	saveButtonText: {
 		fontSize: 16,
-		color: 'rgba(255, 255, 255, 0.9)',
-		lineHeight: 22
+		fontWeight: '600',
+		color: '#2563EB'
 	},
-	content: {
-		flex: 1,
-		padding: 20
+	saveButtonTextDisabled: {
+		color: '#9CA3AF'
 	},
 	form: {
-		flex: 1
+		padding: 20
 	},
-	inputGroup: {
-		gap: 16
+	inputContainer: {
+		marginBottom: 24
 	},
-	inputRow: {
-		flexDirection: 'row',
-		gap: 12
+	label: {
+		fontSize: 15,
+		fontWeight: '500',
+		marginBottom: 8,
+		color: '#374151'
 	},
-	inputHalf: {
-		flex: 1
-	},
-	buttonContainer: {
-		marginTop: 24
-	},
-	errorContainer: {
-		backgroundColor: '#FEF2F2',
-		padding: 16,
-		marginHorizontal: 20,
-		marginTop: 20,
-		borderRadius: 12,
+	input: {
 		borderWidth: 1,
-		borderColor: '#FEE2E2'
+		borderColor: '#E5E7EB',
+		borderRadius: 10,
+		padding: 14,
+		fontSize: 16,
+		backgroundColor: '#F9FAFB',
+		color: '#111827'
 	},
 	errorText: {
-		color: '#DC2626',
-		textAlign: 'center',
+		color: '#EF4444',
 		fontSize: 14,
-		lineHeight: 20
+		marginTop: 8
+	},
+	emailContainer: {
+		marginBottom: 24
+	},
+	emailOverlayContainer: {
+		position: 'relative',
+		borderRadius: 10,
+		overflow: 'hidden'
+	},
+	emailText: {
+		fontSize: 16,
+		color: '#111827',
+		backgroundColor: '#F9FAFB',
+		padding: 14,
+		borderWidth: 1,
+		borderColor: '#E5E7EB',
+		borderRadius: 10,
+		opacity: 0.7
+	},
+	emailOverlay: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: 'rgba(0, 0, 0, 0.05)',
+		zIndex: 1
+	},
+	emailNote: {
+		fontSize: 12,
+		color: '#DC2626',
+		marginTop: 4,
+		fontWeight: '500'
 	}
 });

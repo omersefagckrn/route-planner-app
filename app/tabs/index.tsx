@@ -1,15 +1,32 @@
-import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Dimensions, Image, Pressable } from 'react-native';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '@/store/store';
 import { getCurrentUser } from '../../store/features/authSlice';
-import Animated, { useAnimatedScrollHandler, useSharedValue, interpolate, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, {
+	useAnimatedScrollHandler,
+	useSharedValue,
+	interpolate,
+	useAnimatedStyle,
+	withSpring,
+	withTiming,
+	withSequence,
+	withDelay,
+	Easing,
+	FadeIn,
+	FadeInDown,
+	FadeInUp,
+	ZoomIn,
+	Layout
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { colors } from '../../lib/theme';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const slides = [
 	{
@@ -35,23 +52,55 @@ const slides = [
 const features = [
 	{
 		icon: 'map-outline',
-		title: 'Akıllı Rota Optimizasyonu',
-		description: 'En verimli rotayı otomatik olarak hesaplar'
+		title: 'Akıllı Rota',
+		description: 'En verimli rotayı otomatik hesaplar',
+		color: '#4F46E5'
 	},
 	{
 		icon: 'time-outline',
 		title: 'Zaman Tahmini',
-		description: 'Varış sürenizi hassas şekilde hesaplar'
+		description: 'Varış sürenizi hassas hesaplar',
+		color: '#7C3AED'
 	},
 	{
 		icon: 'location-outline',
 		title: 'Çoklu Durak',
-		description: 'Birden fazla durağı optimize eder'
+		description: 'Birden fazla durağı optimize eder',
+		color: '#EC4899'
 	},
 	{
-		icon: 'notifications-outline',
-		title: 'Anlık Bildirimler',
-		description: 'Trafik ve rota güncellemelerini alın'
+		icon: 'analytics-outline',
+		title: 'İstatistikler',
+		description: 'Detaylı rota analizleri sunar',
+		color: '#F59E0B'
+	}
+];
+
+const stats = [
+	{ title: 'Aktif Kullanıcı', value: '10K+', icon: 'people-outline', color: '#4F46E5' },
+	{ title: 'Günlük Rota', value: '50K+', icon: 'map-outline', color: '#7C3AED' },
+	{ title: 'Kayıtlı Adres', value: '100K+', icon: 'location-outline', color: '#EC4899' },
+	{ title: 'Mutlu Müşteri', value: '95%', icon: 'happy-outline', color: '#F59E0B' }
+];
+
+const benefits = [
+	{
+		title: 'Zaman Tasarrufu',
+		description: "Optimum rotalar ile %30'a varan zaman tasarrufu",
+		icon: 'timer-outline',
+		color: '#4F46E5'
+	},
+	{
+		title: 'Yakıt Tasarrufu',
+		description: 'Akıllı rota planlaması ile yakıt tasarrufu',
+		icon: 'leaf-outline',
+		color: '#7C3AED'
+	},
+	{
+		title: 'Kolay Kullanım',
+		description: 'Sezgisel arayüz ile hızlı öğrenme',
+		icon: 'hand-left-outline',
+		color: '#EC4899'
 	}
 ];
 
@@ -81,16 +130,94 @@ const SlideItem = ({ item, index, scrollX }: { item: any; index: number; scrollX
 	);
 };
 
+const FeatureCard = ({ item, index }: { item: any; index: number }) => {
+	const scale = useSharedValue(1);
+
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }]
+	}));
+
+	const onPressIn = () => {
+		scale.value = withSpring(0.95);
+	};
+
+	const onPressOut = () => {
+		scale.value = withSpring(1);
+	};
+
+	return (
+		<Animated.View entering={FadeInDown.delay(index * 200)} layout={Layout.springify()} style={[styles.featureCard]}>
+			<Animated.View style={animatedStyle}>
+				<Pressable onPressIn={onPressIn} onPressOut={onPressOut} style={[styles.featureCardContent, { backgroundColor: `${item.color}10` }]}>
+					<View style={[styles.featureIconContainer, { backgroundColor: `${item.color}20` }]}>
+						<Ionicons name={item.icon as any} size={24} color={item.color} />
+					</View>
+					<Text style={styles.featureTitle}>{item.title}</Text>
+					<Text style={styles.featureDescription}>{item.description}</Text>
+				</Pressable>
+			</Animated.View>
+		</Animated.View>
+	);
+};
+
+const StatCard = ({ item, index }: { item: any; index: number }) => {
+	return (
+		<Animated.View entering={ZoomIn.delay(index * 200)} layout={Layout.springify()} style={[styles.statCard, { backgroundColor: `${item.color}10` }]}>
+			<View style={[styles.statIconContainer, { backgroundColor: `${item.color}20` }]}>
+				<Ionicons name={item.icon as any} size={24} color={item.color} />
+			</View>
+			<Text style={[styles.statValue, { color: item.color }]}>{item.value}</Text>
+			<Text style={styles.statTitle}>{item.title}</Text>
+		</Animated.View>
+	);
+};
+
+const BenefitCard = ({ item, index }: { item: any; index: number }) => {
+	return (
+		<Animated.View entering={FadeInUp.delay(index * 300)} layout={Layout.springify()} style={styles.benefitCard}>
+			<LinearGradient colors={[`${item.color}20`, `${item.color}10`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.benefitGradient}>
+				<View style={[styles.benefitIconContainer, { backgroundColor: `${item.color}30` }]}>
+					<Ionicons name={item.icon as any} size={32} color={item.color} />
+				</View>
+				<Text style={styles.benefitTitle}>{item.title}</Text>
+				<Text style={styles.benefitDescription}>{item.description}</Text>
+			</LinearGradient>
+		</Animated.View>
+	);
+};
+
 export default function HomeScreen() {
 	const dispatch = useDispatch<AppDispatch>();
 	const { user, isLoading } = useSelector((state: RootState) => state.auth);
+	const userMetadata = user?.user_metadata;
 	const [activeSlide, setActiveSlide] = useState(0);
 	const scrollX = useSharedValue(0);
 	const flatListRef = useRef(null);
+	const router = useRouter();
+
+	const userInitials = useMemo(() => {
+		if (!user?.user_metadata?.first_name && !user?.user_metadata?.last_name) return '??';
+		const firstInitial = user.user_metadata.first_name?.[0] || '';
+		const lastInitial = user.user_metadata.last_name?.[0] || '';
+		return `${firstInitial}${lastInitial}`.toUpperCase();
+	}, [user]);
 
 	useEffect(() => {
-		dispatch(getCurrentUser());
+		const loadUserData = async () => {
+			await dispatch(getCurrentUser());
+		};
+		loadUserData();
 	}, [dispatch]);
+
+	const userName = useMemo(() => {
+		return user?.user_metadata?.first_name || 'Kullanıcı';
+	}, [user]);
+
+	const fullName = useMemo(() => {
+		const firstName = user?.user_metadata?.first_name || '';
+		const lastName = user?.user_metadata?.last_name || '';
+		return `${firstName} ${lastName}`.trim();
+	}, [user]);
 
 	const scrollHandler = useAnimatedScrollHandler({
 		onScroll: (event) => {
@@ -113,23 +240,18 @@ export default function HomeScreen() {
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 				{user ? (
 					<View>
-						<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.userHeader}>
+						<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.userHeader}>
 							<View style={styles.userInfo}>
 								<View style={styles.userAvatar}>
-									<Text style={styles.userInitials}>
-										{user.first_name[0]}
-										{user.last_name[0]}
-									</Text>
+									<Text style={styles.userInitials}>{userInitials}</Text>
 								</View>
 								<View style={styles.userDetails}>
-									<Text style={styles.welcomeText}>Hoş geldin,</Text>
-									<Text style={styles.userName}>
-										{user.first_name} {user.last_name}
-									</Text>
+									<Text style={styles.welcomeText}>Hoş Geldin, {userName}</Text>
+									<Text style={styles.nameText}>{fullName}</Text>
 								</View>
 							</View>
 
-							<TouchableOpacity style={styles.createRouteButton}>
+							<TouchableOpacity onPress={() => router.push('/tabs/address-book')} style={styles.createRouteButton}>
 								<Ionicons name='add-circle-outline' size={24} color='#fff' />
 								<Text style={styles.createRouteText}>Yeni Rota Oluştur</Text>
 							</TouchableOpacity>
@@ -161,7 +283,7 @@ export default function HomeScreen() {
 								style={[
 									styles.paginationDot,
 									{
-										backgroundColor: activeSlide === index ? '#6366F1' : '#E5E7EB',
+										backgroundColor: activeSlide === index ? '#1A1A1A' : '#E5E7EB',
 										width: activeSlide === index ? 24 : 8
 									}
 								]}
@@ -170,84 +292,49 @@ export default function HomeScreen() {
 					</View>
 				</View>
 
-				{/* Özellikler Grid */}
+				{/* Features Section */}
 				<View style={styles.featuresContainer}>
-					<Text style={styles.sectionTitle}>Özellikler</Text>
+					<Animated.Text entering={FadeIn.delay(200)} style={styles.sectionTitle}>
+						Özellikler
+					</Animated.Text>
 					<View style={styles.featuresGrid}>
 						{features.map((feature, index) => (
-							<View key={index} style={styles.featureCard}>
-								<View style={styles.featureIconContainer}>
-									<Ionicons name={feature.icon as any} size={24} color='#6366F1' />
-								</View>
-								<Text style={styles.featureTitle}>{feature.title}</Text>
-								<Text style={styles.featureDescription}>{feature.description}</Text>
-							</View>
+							<FeatureCard key={index} item={feature} index={index} />
 						))}
 					</View>
 				</View>
 
-				{/* FAQ Bölümü */}
-				<View style={styles.faqContainer}>
-					<Text style={styles.sectionTitle}>Sıkça Sorulan Sorular</Text>
-					<View style={styles.faqList}>
-						<TouchableOpacity style={styles.faqItem}>
-							<View style={styles.faqHeader}>
-								<View style={styles.faqIcon}>
-									<Ionicons name='map-outline' size={24} color='#6366F1' />
-								</View>
-								<View style={styles.faqText}>
-									<Text style={styles.faqQuestion}>Rota nasıl oluşturabilirim?</Text>
-									<Text style={styles.faqAnswer}>
-										Rotalar sekmesine giderek yeni rota oluştur butonuna tıklayın ve varış noktalarını belirleyin.
-									</Text>
-								</View>
-							</View>
-						</TouchableOpacity>
+				{/* Stats Section */}
+				<View style={styles.statsContainer}>
+					<Animated.Text entering={FadeIn.delay(400)} style={styles.sectionTitle}>
+						Rakamlarla Biz
+					</Animated.Text>
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
+						{stats.map((stat, index) => (
+							<StatCard key={index} item={stat} index={index} />
+						))}
+					</ScrollView>
+				</View>
 
-						<TouchableOpacity style={styles.faqItem}>
-							<View style={styles.faqHeader}>
-								<View style={styles.faqIcon}>
-									<Ionicons name='bookmark-outline' size={24} color='#6366F1' />
-								</View>
-								<View style={styles.faqText}>
-									<Text style={styles.faqQuestion}>Adreslerimi nasıl kaydedebilirim?</Text>
-									<Text style={styles.faqAnswer}>
-										Adres defteri sekmesinden sık kullandığınız adresleri kolayca ekleyebilir ve düzenleyebilirsiniz.
-									</Text>
-								</View>
-							</View>
-						</TouchableOpacity>
-
-						<TouchableOpacity style={styles.faqItem}>
-							<View style={styles.faqHeader}>
-								<View style={styles.faqIcon}>
-									<Ionicons name='time-outline' size={24} color='#6366F1' />
-								</View>
-								<View style={styles.faqText}>
-									<Text style={styles.faqQuestion}>Teslimat süresini nasıl hesaplayabilirim?</Text>
-									<Text style={styles.faqAnswer}>
-										Rota oluştururken sistem otomatik olarak tahmini varış sürelerini hesaplar ve size en optimize
-										rotayı sunar.
-									</Text>
-								</View>
-							</View>
-						</TouchableOpacity>
-
-						<TouchableOpacity style={styles.faqItem}>
-							<View style={styles.faqHeader}>
-								<View style={styles.faqIcon}>
-									<Ionicons name='notifications-outline' size={24} color='#6366F1' />
-								</View>
-								<View style={styles.faqText}>
-									<Text style={styles.faqQuestion}>Bildirimler nasıl çalışır?</Text>
-									<Text style={styles.faqAnswer}>
-										Rota güncellemeleri, trafik durumu ve önemli değişiklikler hakkında anlık bildirimler alırsınız.
-									</Text>
-								</View>
-							</View>
-						</TouchableOpacity>
+				{/* Benefits Section */}
+				<View style={styles.benefitsContainer}>
+					<Animated.Text entering={FadeIn.delay(600)} style={styles.sectionTitle}>
+						Avantajlar
+					</Animated.Text>
+					<View style={styles.benefitsGrid}>
+						{benefits.map((benefit, index) => (
+							<BenefitCard key={index} item={benefit} index={index} />
+						))}
 					</View>
 				</View>
+
+				{/* Call to Action */}
+				<Animated.View entering={FadeInUp.delay(800)} style={styles.ctaContainer}>
+					<LinearGradient colors={[colors.primary.light, colors.primary.dark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaGradient}>
+						<Text style={styles.ctaTitle}>Hemen Başlayın</Text>
+						<Text style={styles.ctaDescription}>Rotanızı optimize edin, zamandan ve yakıttan tasarruf edin.</Text>
+					</LinearGradient>
+				</Animated.View>
 			</ScrollView>
 		</SafeAreaView>
 	);
@@ -290,7 +377,7 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: 'rgba(255, 255, 255, 0.9)'
 	},
-	userName: {
+	nameText: {
 		fontSize: 20,
 		fontWeight: 'bold',
 		color: '#fff'
@@ -357,103 +444,166 @@ const styles = StyleSheet.create({
 		backgroundColor: '#E5E7EB'
 	},
 	featuresContainer: {
-		padding: 20
-	},
-	sectionTitle: {
-		fontSize: 20,
-		fontWeight: 'bold',
-		color: '#1F2937',
-		marginBottom: 16
+		padding: 20,
+		paddingTop: 32
 	},
 	featuresGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
-		gap: 16
+		gap: 16,
+		marginTop: 16
 	},
 	featureCard: {
-		width: (width - 56) / 2,
-		backgroundColor: '#F8FAFC',
-		padding: 16,
-		borderRadius: 16,
+		width: (width - 56) / 2
+	},
+	featureCardContent: {
+		padding: 20,
+		borderRadius: 20,
 		...Platform.select({
 			ios: {
 				shadowColor: '#000',
-				shadowOffset: { width: 0, height: 2 },
+				shadowOffset: { width: 0, height: 4 },
 				shadowOpacity: 0.1,
-				shadowRadius: 4
+				shadowRadius: 8
 			},
 			android: {
-				elevation: 2
+				elevation: 4
 			}
 		})
 	},
 	featureIconContainer: {
-		width: 40,
-		height: 40,
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginBottom: 16
+	},
+	featureTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#1F2937',
+		marginBottom: 8
+	},
+	featureDescription: {
+		fontSize: 14,
+		color: '#6B7280',
+		lineHeight: 20
+	},
+	statsContainer: {
+		paddingVertical: 32,
+		paddingHorizontal: 20
+	},
+	statsScroll: {
+		gap: 16,
+		paddingRight: 20
+	},
+	statCard: {
+		padding: 20,
 		borderRadius: 20,
-		backgroundColor: 'rgba(99, 102, 241, 0.1)',
+		alignItems: 'center',
+		width: width * 0.4,
+		...Platform.select({
+			ios: {
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 4 },
+				shadowOpacity: 0.1,
+				shadowRadius: 8
+			},
+			android: {
+				elevation: 4
+			}
+		})
+	},
+	statIconContainer: {
+		width: 56,
+		height: 56,
+		borderRadius: 28,
 		alignItems: 'center',
 		justifyContent: 'center',
 		marginBottom: 12
 	},
-	featureTitle: {
-		fontSize: 16,
-		fontWeight: '600',
-		color: '#1F2937',
+	statValue: {
+		fontSize: 24,
+		fontWeight: 'bold',
 		marginBottom: 4
 	},
-	featureDescription: {
+	statTitle: {
 		fontSize: 14,
-		color: '#6B7280'
+		color: '#6B7280',
+		textAlign: 'center'
 	},
-	faqContainer: {
+	benefitsContainer: {
 		padding: 20,
-		paddingBottom: 40
+		paddingTop: 0
 	},
-	faqList: {
-		gap: 12
+	benefitsGrid: {
+		gap: 16,
+		marginTop: 16
 	},
-	faqItem: {
-		backgroundColor: '#F8FAFC',
-		borderRadius: 16,
-		padding: 16,
+	benefitCard: {
+		borderRadius: 20,
+		overflow: 'hidden',
 		...Platform.select({
 			ios: {
-				shadowColor: '#6366F1',
-				shadowOffset: { width: 0, height: 2 },
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 4 },
 				shadowOpacity: 0.1,
-				shadowRadius: 4
+				shadowRadius: 8
 			},
 			android: {
-				elevation: 2
+				elevation: 4
 			}
 		})
 	},
-	faqHeader: {
-		flexDirection: 'row',
-		alignItems: 'flex-start',
-		gap: 12
+	benefitGradient: {
+		padding: 24
 	},
-	faqIcon: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: 'rgba(99, 102, 241, 0.1)',
+	benefitIconContainer: {
+		width: 64,
+		height: 64,
+		borderRadius: 32,
 		alignItems: 'center',
-		justifyContent: 'center'
+		justifyContent: 'center',
+		marginBottom: 16
 	},
-	faqText: {
-		flex: 1
-	},
-	faqQuestion: {
-		fontSize: 16,
+	benefitTitle: {
+		fontSize: 20,
 		fontWeight: '600',
 		color: '#1F2937',
-		marginBottom: 4
+		marginBottom: 8
 	},
-	faqAnswer: {
-		fontSize: 14,
+	benefitDescription: {
+		fontSize: 16,
 		color: '#6B7280',
-		lineHeight: 20
+		lineHeight: 24
+	},
+	ctaContainer: {
+		margin: 20,
+		marginTop: 32,
+		borderRadius: 24,
+		overflow: 'hidden'
+	},
+	ctaGradient: {
+		padding: 32,
+		alignItems: 'center'
+	},
+	ctaTitle: {
+		fontSize: 24,
+		fontWeight: 'bold',
+		color: '#fff',
+		marginBottom: 12
+	},
+	ctaDescription: {
+		fontSize: 16,
+		color: 'rgba(255, 255, 255, 0.9)',
+		textAlign: 'center',
+		lineHeight: 24
+	},
+	sectionTitle: {
+		fontSize: 24,
+		fontWeight: 'bold',
+		color: '#1F2937',
+		marginBottom: 8
 	}
 });

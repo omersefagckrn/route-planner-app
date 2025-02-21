@@ -1,47 +1,71 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
-import { Formik } from 'formik';
+import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updatePassword } from '../../store/features/authSlice';
+import { Formik } from 'formik';
+import { supabase } from '../../lib/supabase';
+import { changePassword } from '../../store/features/authSlice';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { Input } from '../../components/Input';
-import { Button } from '../../components/Button';
+import type { RootState, AppDispatch } from '@/store/store';
 import { ChangePasswordFormValues, ChangePasswordSchema } from '@/schemas/auth';
 
 export default function ChangePasswordScreen() {
-	const dispatch = useAppDispatch();
-	const { isLoading, error } = useAppSelector((state) => state.auth);
+	const dispatch = useDispatch<AppDispatch>();
+	const { isLoading, user } = useSelector((state: RootState) => state.auth);
+	const [error, setError] = useState('');
 
-	const handleSubmit = async (values: ChangePasswordFormValues) => {
-		dispatch(updatePassword({ currentPassword: values.currentPassword, newPassword: values.newPassword }));
+	const handleChangePassword = async (values: ChangePasswordFormValues) => {
+		try {
+			setError('');
+
+			if (!user?.email) {
+				setError('Kullanıcı bilgileri alınamadı');
+				return;
+			}
+
+			// Önce mevcut şifreyi kontrol et
+			const { error: signInError } = await supabase.auth.signInWithPassword({
+				email: user.email,
+				password: values.currentPassword
+			});
+
+			if (signInError) {
+				if (signInError.message.includes('Invalid login credentials')) {
+					setError('Mevcut şifreniz hatalı');
+				} else {
+					setError('Şifre kontrolü sırasında bir hata oluştu');
+				}
+				return;
+			}
+
+			// Yeni şifre mevcut şifre ile aynı mı kontrol et
+			if (values.currentPassword === values.newPassword) {
+				setError('Yeni şifreniz mevcut şifreniz ile aynı olamaz');
+				return;
+			}
+
+			// Şifre değiştirme işlemi
+			await dispatch(changePassword({ password: values.newPassword })).unwrap();
+			router.back();
+		} catch (err: any) {
+			const errorMessage = err.message?.toLowerCase() || '';
+			if (errorMessage.includes('password')) {
+				if (errorMessage.includes('strong')) {
+					setError('Yeni şifreniz yeterince güçlü değil. Lütfen en az bir büyük harf, bir küçük harf ve bir rakam içeren 6 karakterlik bir şifre girin.');
+				} else {
+					setError('Şifre değiştirme işlemi başarısız oldu');
+				}
+			} else {
+				setError('Şifre değiştirilirken bir hata oluştu. Lütfen tekrar deneyin.');
+			}
+		}
 	};
 
 	return (
-		<View style={styles.container}>
-			<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
-				<View style={styles.headerContent}>
-					<TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-						<Ionicons name='arrow-back' size={24} color='#fff' />
-					</TouchableOpacity>
-					<View style={styles.headerTextContainer}>
-						<Text style={styles.title}>Şifre Değiştir</Text>
-						<Text style={styles.description}>Hesap güvenliğiniz için şifrenizi güncelleyin</Text>
-					</View>
-				</View>
-			</LinearGradient>
-
-			<LoadingOverlay visible={isLoading} message='Şifre değiştiriliyor...' />
-
-			{error && (
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{error}</Text>
-				</View>
-			)}
-
-			<View style={styles.content}>
+		<SafeAreaView style={styles.container}>
+			<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
 				<Formik
 					initialValues={{
 						currentPassword: '',
@@ -49,50 +73,91 @@ export default function ChangePasswordScreen() {
 						confirmNewPassword: ''
 					}}
 					validationSchema={ChangePasswordSchema}
-					onSubmit={handleSubmit}
+					onSubmit={handleChangePassword}
 				>
-					{({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-						<View style={styles.form}>
-							<View style={styles.inputGroup}>
-								<Input
-									label='Mevcut Şifre'
-									placeholder='••••••'
-									value={values.currentPassword}
-									onChangeText={handleChange('currentPassword')}
-									onBlur={handleBlur('currentPassword')}
-									error={touched.currentPassword && errors.currentPassword}
-									secureTextEntry
-								/>
-
-								<Input
-									label='Yeni Şifre'
-									placeholder='••••••'
-									value={values.newPassword}
-									onChangeText={handleChange('newPassword')}
-									onBlur={handleBlur('newPassword')}
-									error={touched.newPassword && errors.newPassword}
-									secureTextEntry
-								/>
-
-								<Input
-									label='Yeni Şifre Tekrarı'
-									placeholder='••••••'
-									value={values.confirmNewPassword}
-									onChangeText={handleChange('confirmNewPassword')}
-									onBlur={handleBlur('confirmNewPassword')}
-									error={touched.confirmNewPassword && errors.confirmNewPassword}
-									secureTextEntry
-								/>
+					{({ handleChange, handleBlur, handleSubmit, values, errors, touched, isValid }) => (
+						<>
+							<View style={styles.header}>
+								<TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+									<Ionicons name='close' size={24} color='#000' />
+								</TouchableOpacity>
+								<Text style={styles.title}>Şifre Değiştir</Text>
+								<TouchableOpacity
+									style={[
+										styles.saveButton,
+										(!isValid || !values.currentPassword || !values.newPassword || !values.confirmNewPassword) &&
+											styles.saveButtonDisabled
+									]}
+									onPress={() => handleSubmit()}
+									disabled={
+										isLoading ||
+										!isValid ||
+										!values.currentPassword ||
+										!values.newPassword ||
+										!values.confirmNewPassword
+									}
+								>
+									<Text
+										style={[
+											styles.saveButtonText,
+											(!isValid ||
+												!values.currentPassword ||
+												!values.newPassword ||
+												!values.confirmNewPassword) &&
+												styles.saveButtonTextDisabled
+										]}
+									>
+										Kaydet
+									</Text>
+								</TouchableOpacity>
 							</View>
 
-							<View style={styles.buttonContainer}>
-								<Button onPress={() => handleSubmit()} title='Şifreyi Güncelle' loading={isLoading} />
+							<View style={styles.form}>
+								<View style={styles.inputGroup}>
+									<Input
+										label='Mevcut Şifre'
+										placeholder='••••••'
+										value={values.currentPassword}
+										onChangeText={handleChange('currentPassword')}
+										onBlur={handleBlur('currentPassword')}
+										error={touched.currentPassword && errors.currentPassword}
+										secureTextEntry
+									/>
+
+									<Input
+										label='Yeni Şifre'
+										placeholder='••••••'
+										value={values.newPassword}
+										onChangeText={handleChange('newPassword')}
+										onBlur={handleBlur('newPassword')}
+										error={touched.newPassword && errors.newPassword}
+										secureTextEntry
+									/>
+
+									<Input
+										label='Yeni Şifre Tekrarı'
+										placeholder='••••••'
+										value={values.confirmNewPassword}
+										onChangeText={handleChange('confirmNewPassword')}
+										onBlur={handleBlur('confirmNewPassword')}
+										error={touched.confirmNewPassword && errors.confirmNewPassword}
+										secureTextEntry
+									/>
+								</View>
+
+								{error ? (
+									<View style={styles.errorContainer}>
+										<Text style={styles.errorText}>{error}</Text>
+									</View>
+								) : null}
 							</View>
-						</View>
+						</>
 					)}
 				</Formik>
-			</View>
-		</View>
+
+				<LoadingOverlay visible={isLoading} message='Şifre değiştiriliyor...' />
+			</KeyboardAvoidingView>
+		</SafeAreaView>
 	);
 }
 
@@ -102,76 +167,53 @@ const styles = StyleSheet.create({
 		backgroundColor: '#fff'
 	},
 	header: {
-		paddingTop: Platform.OS === 'ios' ? 60 : 40,
-		paddingBottom: 30,
-		paddingHorizontal: 20,
-		borderBottomLeftRadius: 30,
-		borderBottomRightRadius: 30,
-		...Platform.select({
-			ios: {
-				shadowColor: '#6366F1',
-				shadowOffset: { width: 0, height: 4 },
-				shadowOpacity: 0.2,
-				shadowRadius: 8
-			},
-			android: {
-				elevation: 8
-			}
-		})
-	},
-	headerContent: {
 		flexDirection: 'row',
-		alignItems: 'center'
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: '#E5E7EB'
 	},
 	backButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: 'rgba(255, 255, 255, 0.2)',
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginRight: 16
-	},
-	headerTextContainer: {
-		flex: 1
+		padding: 8
 	},
 	title: {
-		fontSize: 28,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginBottom: 8
-	},
-	description: {
-		fontSize: 16,
-		color: 'rgba(255, 255, 255, 0.9)',
-		lineHeight: 22
-	},
-	content: {
-		flex: 1,
-		padding: 20
+		fontSize: 17,
+		fontWeight: '600',
+		color: '#111827'
 	},
 	form: {
-		flex: 1
+		padding: 20
 	},
 	inputGroup: {
-		gap: 16
-	},
-	buttonContainer: {
-		marginTop: 24
+		gap: 24
 	},
 	errorContainer: {
 		backgroundColor: '#FEF2F2',
-		padding: 16,
-		marginHorizontal: 20,
-		marginTop: 20,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: '#FEE2E2'
+		padding: 12,
+		borderRadius: 10,
+		marginTop: 16,
+		marginBottom: 24
 	},
 	errorText: {
 		color: '#DC2626',
-		textAlign: 'center',
 		fontSize: 14,
-		lineHeight: 20
+		textAlign: 'center'
+	},
+	saveButton: {
+		paddingVertical: 8,
+		paddingHorizontal: 12
+	},
+	saveButtonDisabled: {
+		opacity: 0.5
+	},
+	saveButtonText: {
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#2563EB'
+	},
+	saveButtonTextDisabled: {
+		color: '#9CA3AF'
 	}
 });

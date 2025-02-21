@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Formik } from 'formik';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { signUp, clearError } from '../../store/features/authSlice';
+import { signUp, signIn, clearError } from '../../store/features/authSlice';
 import { LoadingOverlay } from '../../components/LoadingOverlay';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
@@ -17,19 +17,25 @@ const phoneMask: Mask = ['(', /5/, /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, '-', 
 export default function RegisterScreen() {
 	const dispatch = useAppDispatch();
 	const { isLoading, error } = useAppSelector((state) => state.auth);
+	const [registrationError, setRegistrationError] = useState('');
 
 	useEffect(() => {
 		dispatch(clearError());
 	}, [dispatch]);
 
 	const handleRegister = async (values: RegisterFormValues) => {
-		const { confirmPassword, ...userData } = values;
-		dispatch(signUp(userData));
+		try {
+			const { confirmPassword, ...userData } = values;
+			await dispatch(signUp(userData)).unwrap();
+			router.replace('/tabs');
+		} catch (error) {
+			setRegistrationError(`Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin. ${error}`);
+		}
 	};
 
 	return (
 		<KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-			<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+			<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
 				<View style={styles.headerContent}>
 					<TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
 						<Ionicons name='arrow-back' size={24} color='#fff' />
@@ -43,11 +49,11 @@ export default function RegisterScreen() {
 
 			<LoadingOverlay visible={isLoading} message='Kayıt yapılıyor...' />
 
-			{error && (
+			{error || registrationError ? (
 				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{error}</Text>
+					<Text style={styles.errorText}>{error || registrationError}</Text>
 				</View>
-			)}
+			) : null}
 
 			<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false} bounces={false}>
 				<Formik
@@ -163,7 +169,7 @@ const styles = StyleSheet.create({
 		borderBottomRightRadius: 30,
 		...Platform.select({
 			ios: {
-				shadowColor: '#6366F1',
+				shadowColor: '#1A1A1A',
 				shadowOffset: { width: 0, height: 4 },
 				shadowOpacity: 0.2,
 				shadowRadius: 8
@@ -239,10 +245,11 @@ const styles = StyleSheet.create({
 		alignItems: 'center'
 	},
 	loginButtonText: {
-		color: '#3b5998',
+		color: '#1A1A1A',
 		fontSize: 16
 	},
 	loginButtonTextBold: {
-		fontWeight: 'bold'
+		fontWeight: 'bold',
+		color: '#1A1A1A'
 	}
 });

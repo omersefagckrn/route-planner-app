@@ -1,184 +1,170 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Animated, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { checkFirstLaunch, setFirstLaunch } from '../utils/routeUtils';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { colors } from '../lib/theme';
 
 const { width, height } = Dimensions.get('window');
 
-// Animation constants
-const ANIMATION_DURATION = 1000;
-const BUTTON_SCALE = 0.95;
-
 export default function OnboardingScreen() {
-	const fadeAnim = useRef(new Animated.Value(0)).current;
-	const slideAnim = useRef(new Animated.Value(50)).current;
-	const [isPressed, setIsPressed] = useState(false);
-	const scaleAnim = useRef(new Animated.Value(1)).current;
-
 	useEffect(() => {
 		checkFirstLaunch();
-		startAnimations();
 	}, []);
 
-	const startAnimations = () => {
-		Animated.parallel([
-			Animated.timing(fadeAnim, {
-				toValue: 1,
-				duration: ANIMATION_DURATION,
-				useNativeDriver: true
-			}),
-			Animated.timing(slideAnim, {
-				toValue: 0,
-				duration: ANIMATION_DURATION,
-				useNativeDriver: true
-			})
-		]).start();
-	};
-
-	const handlePressIn = () => {
-		setIsPressed(true);
-		Animated.spring(scaleAnim, {
-			toValue: BUTTON_SCALE,
-			useNativeDriver: true
-		}).start();
-	};
-
-	const handlePressOut = () => {
-		setIsPressed(false);
-		Animated.spring(scaleAnim, {
-			toValue: 1,
-			useNativeDriver: true
-		}).start();
-	};
-
-	const handleComplete = async () => {
-		const success = await setFirstLaunch();
-		if (success) {
-			router.replace('/tabs');
-		}
+	const handleStart = () => {
+		router.replace('/tabs');
+		setFirstLaunch();
 	};
 
 	return (
-		<View style={styles.container}>
-			<Animated.View
-				style={[
-					styles.content,
-					{
-						opacity: fadeAnim,
-						transform: [{ translateY: slideAnim }]
-					}
-				]}
-			>
-				<View style={styles.iconContainer}>
-					<Ionicons name='map' size={100} color='#007AFF' />
-				</View>
-				<Text style={styles.title}>Hoş Geldiniz</Text>
-				<Text style={styles.description}>Rota planlama uygulamasına hoş geldiniz. Hızlı ve kolay bir şekilde rotalarınızı planlayın.</Text>
+		<ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+			<View style={styles.header}>
+				<LinearGradient colors={[colors.primary.light, colors.primary.dark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerGradient}>
+					<Animated.View entering={FadeInDown.delay(200).duration(1000)} style={styles.logoContainer}>
+						<Ionicons name='map' size={80} color='#fff' />
+						<Text style={styles.appName}>Route Master</Text>
+						<Text style={styles.appSlogan}>Rotanı planla, yolculuğunu kolaylaştır</Text>
+					</Animated.View>
+				</LinearGradient>
+			</View>
 
-				<Animated.View style={[styles.buttonContainer, { transform: [{ scale: scaleAnim }] }]}>
-					<TouchableOpacity style={styles.buttonWrapper} onPress={handleComplete} onPressIn={handlePressIn} onPressOut={handlePressOut} activeOpacity={1}>
-						<LinearGradient
-							colors={['#4C47DB', '#6366F1']}
-							start={{ x: 0, y: 0 }}
-							end={{ x: 1, y: 0 }}
-							style={[styles.button, isPressed && styles.buttonPressed]}
-						>
-							<View style={styles.buttonContent}>
-								<Text style={styles.buttonText}>Keşfetmeye Başla</Text>
-								<View style={styles.iconWrapper}>
-									<Ionicons name='arrow-forward' size={22} color='#fff' />
-								</View>
-							</View>
-						</LinearGradient>
-					</TouchableOpacity>
+			<View style={styles.content}>
+				<Animated.View entering={FadeInDown.delay(400).duration(1000)} style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Ionicons name='flash-outline' size={32} color={colors.primary.light} />
+						<Text style={styles.sectionTitle}>Hızlı ve Kolay</Text>
+					</View>
+					<Text style={styles.sectionDescription}>Saniyeler içinde rotanızı planlayın, adreslerinizi kaydedin ve en verimli güzergahı bulun.</Text>
 				</Animated.View>
 
-				<View style={styles.features}>
-					<View style={styles.featureItem}>
-						<Ionicons name='navigate-circle-outline' size={24} color='#6366F1' />
-						<Text style={styles.featureText}>Kolay Rota Planlama</Text>
+				<Animated.View entering={FadeInDown.delay(600).duration(1000)} style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Ionicons name='bookmark-outline' size={32} color={colors.primary.light} />
+						<Text style={styles.sectionTitle}>Favori Adresler</Text>
 					</View>
-					<View style={styles.featureItem}>
-						<Ionicons name='time-outline' size={24} color='#6366F1' />
-						<Text style={styles.featureText}>Zaman Tasarrufu</Text>
+					<Text style={styles.sectionDescription}>Sık kullandığınız adresleri kaydedin, favorilerinize ekleyin ve hızlıca erişin.</Text>
+				</Animated.View>
+
+				<Animated.View entering={FadeInDown.delay(800).duration(1000)} style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Ionicons name='shield-checkmark-outline' size={32} color={colors.primary.light} />
+						<Text style={styles.sectionTitle}>Güvenli ve Özel</Text>
 					</View>
-					<View style={styles.featureItem}>
-						<Ionicons name='location-outline' size={24} color='#6366F1' />
-						<Text style={styles.featureText}>Adres Kaydetme</Text>
+					<Text style={styles.sectionDescription}>Verileriniz güvenle saklanır, kişisel bilgileriniz şifrelenir ve sadece size özel kalır.</Text>
+				</Animated.View>
+
+				<Animated.View entering={FadeInDown.delay(1000).duration(1000)} style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Ionicons name='sync-outline' size={32} color={colors.primary.light} />
+						<Text style={styles.sectionTitle}>Otomatik Senkronizasyon</Text>
 					</View>
-				</View>
-			</Animated.View>
-		</View>
+					<Text style={styles.sectionDescription}>Tüm cihazlarınızda güncel verilerinize erişin, kesintisiz deneyim yaşayın.</Text>
+				</Animated.View>
+
+				<Animated.View entering={FadeInDown.delay(1200).duration(1000)} style={styles.ctaContainer}>
+					<TouchableOpacity style={styles.startButton} onPress={handleStart}>
+						<LinearGradient
+							colors={[colors.primary.light, colors.primary.dark]}
+							start={{ x: 0, y: 0 }}
+							end={{ x: 1, y: 0 }}
+							style={styles.buttonGradient}
+						>
+							<Text style={styles.buttonText}>Hemen Başla</Text>
+							<Ionicons name='arrow-forward' size={24} color='#fff' />
+						</LinearGradient>
+					</TouchableOpacity>
+					<Text style={styles.disclaimer}>Devam ederek kullanım koşullarını ve gizlilik politikasını kabul etmiş olursunuz.</Text>
+				</Animated.View>
+			</View>
+		</ScrollView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#fff',
-		padding: 20,
-		justifyContent: 'center'
+		backgroundColor: '#fff'
 	},
-	content: {
+	header: {
+		height: height * 0.4,
+		backgroundColor: colors.primary.light
+	},
+	headerGradient: {
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
-		maxHeight: height * 0.8,
-		paddingVertical: height * 0.05
+		padding: 20
 	},
-	iconContainer: {
-		marginBottom: height * 0.03,
-		padding: 20,
-		borderRadius: 30,
-		backgroundColor: 'rgba(99, 102, 241, 0.1)'
+	logoContainer: {
+		alignItems: 'center'
 	},
-	title: {
-		fontSize: Math.min(32, width * 0.08),
+	appName: {
+		fontSize: 36,
 		fontWeight: 'bold',
-		marginBottom: height * 0.02,
-		textAlign: 'center',
-		color: '#1a1a1a'
+		color: '#fff',
+		marginTop: 16
 	},
-	description: {
-		fontSize: Math.min(16, width * 0.04),
-		textAlign: 'center',
-		color: '#666',
-		marginBottom: height * 0.03,
-		lineHeight: 24,
-		paddingHorizontal: width * 0.05
+	appSlogan: {
+		fontSize: 16,
+		color: 'rgba(255, 255, 255, 0.9)',
+		marginTop: 8,
+		textAlign: 'center'
 	},
-	features: {
-		width: '100%',
-		marginTop: height * 0.03
+	content: {
+		padding: 24,
+		paddingTop: 32
 	},
-	featureItem: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginBottom: height * 0.015,
-		backgroundColor: 'rgba(99, 102, 241, 0.05)',
-		padding: 15,
-		borderRadius: 12
-	},
-	featureText: {
-		marginLeft: 15,
-		fontSize: Math.min(16, width * 0.04),
-		color: '#333'
-	},
-	buttonContainer: {
-		width: '100%',
-		marginTop: height * 0.03
-	},
-	buttonWrapper: {
+	section: {
+		marginBottom: 32,
+		backgroundColor: '#fff',
 		borderRadius: 16,
-		overflow: 'hidden',
+		padding: 20,
 		...Platform.select({
 			ios: {
-				shadowColor: '#6366F1',
+				shadowColor: '#000',
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.1,
+				shadowRadius: 8
+			},
+			android: {
+				elevation: 4
+			}
+		})
+	},
+	sectionHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 12,
+		gap: 12
+	},
+	sectionTitle: {
+		fontSize: 24,
+		fontWeight: '600',
+		color: colors.text.primary
+	},
+	sectionDescription: {
+		fontSize: 16,
+		lineHeight: 24,
+		color: colors.text.secondary
+	},
+	ctaContainer: {
+		alignItems: 'center',
+		marginTop: 8,
+		marginBottom: 32
+	},
+	startButton: {
+		width: '100%',
+		borderRadius: 16,
+		overflow: 'hidden',
+		marginBottom: 16,
+		...Platform.select({
+			ios: {
+				shadowColor: colors.primary.dark,
 				shadowOffset: { width: 0, height: 4 },
-				shadowOpacity: 0.3,
+				shadowOpacity: 0.2,
 				shadowRadius: 8
 			},
 			android: {
@@ -186,29 +172,21 @@ const styles = StyleSheet.create({
 			}
 		})
 	},
-	button: {
-		borderRadius: 16,
-		paddingVertical: Math.min(18, height * 0.025)
-	},
-	buttonPressed: {
-		opacity: 0.9
-	},
-	buttonContent: {
+	buttonGradient: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingHorizontal: 20
+		paddingVertical: 20,
+		gap: 8
 	},
 	buttonText: {
 		color: '#fff',
-		fontSize: Math.min(18, width * 0.045),
-		fontWeight: '600',
-		marginRight: 8
+		fontSize: 18,
+		fontWeight: '600'
 	},
-	iconWrapper: {
-		backgroundColor: 'rgba(255, 255, 255, 0.2)',
-		borderRadius: 12,
-		padding: 4,
-		marginLeft: 8
+	disclaimer: {
+		fontSize: 13,
+		color: colors.text.secondary,
+		textAlign: 'center'
 	}
 });

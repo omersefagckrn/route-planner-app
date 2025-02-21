@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Formik } from 'formik';
@@ -14,34 +14,41 @@ import { LoginFormValues, LoginSchema } from '@/schemas/auth';
 export default function LoginScreen() {
 	const dispatch = useAppDispatch();
 	const { isLoading, error } = useAppSelector((state) => state.auth);
+	const [loginError, setLoginError] = useState('');
 
 	useEffect(() => {
 		dispatch(clearError());
+		setLoginError('');
 	}, [dispatch]);
 
 	const handleLogin = async (values: LoginFormValues) => {
-		dispatch(signIn(values));
+		try {
+			await dispatch(signIn(values)).unwrap();
+			router.replace('/tabs');
+		} catch (error: any) {
+			setLoginError(error.message);
+		}
 	};
 
 	return (
 		<KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-			<LinearGradient colors={['#4C47DB', '#6366F1']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+			<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
 				<View style={styles.headerContent}>
 					<TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
 						<Ionicons name='arrow-back' size={24} color='#fff' />
 					</TouchableOpacity>
 					<View style={styles.headerTextContainer}>
-						<Text style={styles.title}>Tekrar Hoşgeldiniz</Text>
-						<Text style={styles.description}>Rotalarınızı planlamaya devam etmek için giriş yapın</Text>
+						<Text style={styles.title}>Giriş Yap</Text>
+						<Text style={styles.description}>Hesabınıza giriş yapın</Text>
 					</View>
 				</View>
 			</LinearGradient>
 
 			<LoadingOverlay visible={isLoading} message='Giriş yapılıyor...' />
 
-			{error && (
+			{(error || loginError) && (
 				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{error}</Text>
+					<Text style={styles.errorText}>{error || loginError}</Text>
 				</View>
 			)}
 
@@ -110,7 +117,7 @@ const styles = StyleSheet.create({
 		borderBottomRightRadius: 30,
 		...Platform.select({
 			ios: {
-				shadowColor: '#6366F1',
+				shadowColor: '#1A1A1A',
 				shadowOffset: { width: 0, height: 4 },
 				shadowOpacity: 0.2,
 				shadowRadius: 8
@@ -180,12 +187,12 @@ const styles = StyleSheet.create({
 		paddingVertical: 8
 	},
 	registerButtonText: {
-		color: '#6B7280',
+		color: '#666666',
 		fontSize: 14,
 		textAlign: 'center'
 	},
 	registerButtonTextBold: {
-		color: '#6366F1',
+		color: '#1A1A1A',
 		fontWeight: '600'
 	}
 });

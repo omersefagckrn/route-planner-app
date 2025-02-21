@@ -1,25 +1,47 @@
+import React from 'react';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
 import { store } from '../store/store';
-import Toast from 'react-native-toast-message';
 import { useEffect } from 'react';
-import { checkFirstLaunch } from '../utils/routeUtils';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchAddresses, fetchFavorites } from '../store/features/addressSlice';
+import type { RootState, AppDispatch } from '../store/store';
 
-export default function Layout() {
+function AppContent() {
+	const dispatch = useDispatch<AppDispatch>();
+	const { user } = useSelector((state: RootState) => state.auth);
+
 	useEffect(() => {
-		checkFirstLaunch();
-	}, []);
+		if (user?.id) {
+			dispatch(fetchAddresses(user.id));
+			dispatch(fetchFavorites(user.id));
+		}
+	}, [user?.id, dispatch]);
 
 	return (
-		<Provider store={store}>
+		<>
+			<StatusBar style='dark' />
 			<Stack screenOptions={{ headerShown: false }}>
 				<Stack.Screen name='index' />
 				<Stack.Screen name='tabs' />
-				<Stack.Screen name='auth' options={{ presentation: 'modal' }} />
-				<Stack.Screen name='(modals)/edit-profile' options={{ presentation: 'modal' }} />
-				<Stack.Screen name='(modals)/change-password' options={{ presentation: 'modal' }} />
+				<Stack.Screen name='auth' />
+				<Stack.Screen
+					name='(modals)'
+					options={{
+						presentation: 'modal',
+						animation: 'slide_from_bottom'
+					}}
+				/>
 			</Stack>
-			<Toast />
+		</>
+	);
+}
+
+export default function RootLayout() {
+	return (
+		<Provider store={store}>
+			<AppContent />
 		</Provider>
 	);
 }

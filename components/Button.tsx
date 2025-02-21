@@ -1,20 +1,17 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform, TouchableOpacityProps } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { gradients, shadows } from '../lib/theme';
+import { colors, shadows } from '../lib/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
 	title: string;
 	loading?: boolean;
-	variant?: 'primary' | 'secondary' | 'danger';
+	variant?: 'primary' | 'secondary';
 }
 
 export const Button: React.FC<ButtonProps> = ({ title, loading, variant = 'primary', style, disabled, onPress, ...props }) => {
 	return (
-		<TouchableOpacity style={[styles.button, disabled && styles.disabled, style]} disabled={disabled || loading} activeOpacity={0.8} onPress={onPress} {...props}>
-			<LinearGradient colors={gradients[variant] as [string, string, ...string[]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gradient}>
-				{loading ? <ActivityIndicator color='#fff' size='small' /> : <Text style={styles.title}>{title}</Text>}
-			</LinearGradient>
+		<TouchableOpacity style={[styles.button, styles[variant], disabled && styles.disabled, style]} disabled={disabled || loading} activeOpacity={0.8} onPress={onPress} {...props}>
+			{loading ? <ActivityIndicator color='#fff' size='small' /> : <Text style={[styles.title, variant === 'secondary' && styles.secondaryTitle]}>{title}</Text>}
 		</TouchableOpacity>
 	);
 };
@@ -23,17 +20,26 @@ const styles = StyleSheet.create({
 	button: {
 		borderRadius: 12,
 		overflow: 'hidden',
+		paddingVertical: 14,
+		alignItems: 'center',
+		justifyContent: 'center',
 		...shadows.medium
 	},
-	gradient: {
-		paddingVertical: 16,
-		alignItems: 'center',
-		justifyContent: 'center'
+	primary: {
+		backgroundColor: colors.primary.dark
+	},
+	secondary: {
+		backgroundColor: '#fff',
+		borderWidth: 1,
+		borderColor: colors.border.default
 	},
 	title: {
 		color: '#fff',
-		fontSize: 16,
+		fontSize: 15,
 		fontWeight: '600'
+	},
+	secondaryTitle: {
+		color: colors.text.primary
 	},
 	disabled: {
 		opacity: 0.7

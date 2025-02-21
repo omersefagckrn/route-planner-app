@@ -1,6 +1,6 @@
 # Route Planner App
 
-Modern ve kullanıcı dostu bir rota planlama uygulaması. React Native ve Expo ile geliştirilmiştir.
+React Native ve Expo ile geliştirilmiştir.
 
 ## 🚀 Özellikler
 
@@ -25,17 +25,20 @@ Modern ve kullanıcı dostu bir rota planlama uygulaması. React Native ve Expo 
 ## 📦 Kurulum
 
 1. Projeyi klonlayın:
+
 ```bash
 git clone https://github.com/omersefagckrn/route-planner-app.git
 cd route-planner-app
 ```
 
 2. Bağımlılıkları yükleyin:
+
 ```bash
 npm install
 ```
 
 3. Geliştirme sunucusunu başlatın:
+
 ```bash
 npx expo start
 ```
@@ -68,4 +71,5 @@ Bu proje MIT lisansı altında lisanslanmıştır. Daha fazla bilgi için `LICEN
 ## 📞 İletişim
 
 Sorularınız için:
+
 - GitHub: [@omersefagckrn](https://github.com/omersefagckrn)

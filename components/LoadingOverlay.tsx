@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, Text, Animated, Easing } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, gradients, shadows } from '../lib/theme';
+import { colors, shadows } from '../lib/theme';
 
 interface LoadingOverlayProps {
 	visible: boolean;
@@ -34,16 +33,16 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible, message
 
 	return (
 		<View style={styles.container}>
-			<LinearGradient colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.97)']} style={styles.content}>
+			<View style={styles.content}>
 				<View style={styles.iconContainer}>
-					<LinearGradient colors={gradients.primary as [string, string, ...string[]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.iconBackground}>
+					<View style={styles.iconBackground}>
 						<Animated.View style={{ transform: [{ rotate: spin }] }}>
-							<Ionicons name='sync' size={32} color='#fff' />
+							<Ionicons name='sync' size={28} color={colors.primary.dark} />
 						</Animated.View>
-					</LinearGradient>
+					</View>
 				</View>
 				<Text style={styles.message}>{message}</Text>
-			</LinearGradient>
+			</View>
 		</View>
 	);
 };
@@ -54,29 +53,34 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 		zIndex: 999,
-		backdropFilter: 'blur(5px)'
+		backgroundColor: 'rgba(255, 255, 255, 0.95)'
 	},
 	content: {
-		padding: 24,
-		borderRadius: 20,
-		minWidth: 180,
+		padding: 20,
+		borderRadius: 16,
+		minWidth: 160,
 		alignItems: 'center',
-		...shadows.large
-	},
-	iconContainer: {
-		marginBottom: 16
-	},
-	iconBackground: {
-		width: 64,
-		height: 64,
-		borderRadius: 32,
-		justifyContent: 'center',
-		alignItems: 'center',
+		backgroundColor: '#fff',
+		borderWidth: 1,
+		borderColor: colors.border.default,
 		...shadows.medium
 	},
+	iconContainer: {
+		marginBottom: 14
+	},
+	iconBackground: {
+		width: 56,
+		height: 56,
+		borderRadius: 28,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: colors.background.primary,
+		borderWidth: 1,
+		borderColor: colors.border.default
+	},
 	message: {
-		fontSize: 16,
-		fontWeight: '600',
+		fontSize: 14,
+		fontWeight: '500',
 		color: colors.text.primary,
 		textAlign: 'center'
 	}

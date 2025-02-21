@@ -14,26 +14,13 @@ export const Input: React.FC<InputProps> = ({ error, style, mask, onChangeText, 
 	return (
 		<View style={styles.container}>
 			{label && <Text style={styles.label}>{label}</Text>}
-			{mask ? (
-				<MaskInput
-					style={[styles.input, error && styles.inputError, style]}
-					placeholderTextColor={colors.text.secondary}
-					mask={mask}
-					textContentType={'oneTimeCode'}
-					onChangeText={(masked, unmasked) => {
-						onChangeText(masked);
-					}}
-					{...props}
-				/>
-			) : (
-				<MaskInput
-					style={[styles.input, error && styles.inputError, style]}
-					placeholderTextColor={colors.text.secondary}
-					onChangeText={(masked) => onChangeText(masked)}
-					textContentType={'oneTimeCode'}
-					{...props}
-				/>
-			)}
+			<MaskInput
+				style={[styles.input, error && styles.inputError, style]}
+				placeholderTextColor={colors.text.secondary}
+				onChangeText={(masked) => onChangeText(masked)}
+				mask={mask}
+				{...props}
+			/>
 			{typeof error === 'string' && <Text style={styles.errorText}>{error}</Text>}
 		</View>
 	);
@@ -44,20 +31,20 @@ const styles = StyleSheet.create({
 		marginBottom: 8
 	},
 	label: {
-		fontSize: 14,
+		fontSize: 13,
 		fontWeight: '500',
 		color: colors.text.secondary,
 		marginBottom: 6,
-		marginLeft: 4
+		marginLeft: 2
 	},
 	input: {
-		height: 48,
-		backgroundColor: colors.background.primary,
+		height: 44,
+		backgroundColor: '#fff',
 		borderWidth: 1,
 		borderColor: colors.border.default,
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		fontSize: 15,
+		borderRadius: 10,
+		paddingHorizontal: 14,
+		fontSize: 14,
 		color: colors.text.primary,
 		...shadows.small
 	},
@@ -68,8 +55,8 @@ const styles = StyleSheet.create({
 	},
 	errorText: {
 		color: colors.text.error,
-		fontSize: 12,
+		fontSize: 11,
 		marginTop: 4,
-		marginLeft: 4
+		marginLeft: 2
 	}
 });

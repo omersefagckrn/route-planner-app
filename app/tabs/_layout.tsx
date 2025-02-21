@@ -1,42 +1,50 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
 	return (
 		<Tabs
 			screenOptions={{
-				tabBarStyle: { backgroundColor: '#fff' },
-				tabBarActiveTintColor: '#6366F1',
-				tabBarInactiveTintColor: '#999',
-				headerShown: false
+				headerShown: false,
+				tabBarStyle: {
+					backgroundColor: '#fff',
+					borderTopWidth: 1,
+					borderTopColor: '#E5E7EB',
+					height: Platform.OS === 'ios' ? 85 : 65,
+					paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+					paddingTop: 10
+				},
+				tabBarActiveTintColor: '#1A1A1A',
+				tabBarInactiveTintColor: '#9CA3AF'
 			}}
 		>
 			<Tabs.Screen
 				name='index'
 				options={{
 					title: 'Ana Sayfa',
-					tabBarIcon: ({ color, size }) => <Ionicons name='home-outline' size={size} color={color} />
+					tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
 				}}
 			/>
 			<Tabs.Screen
 				name='routes'
 				options={{
 					title: 'Rotalar',
-					tabBarIcon: ({ color, size }) => <Ionicons name='map-outline' size={size} color={color} />
+					tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? 'map' : 'map-outline'} size={24} color={color} />
 				}}
 			/>
 			<Tabs.Screen
 				name='address-book'
 				options={{
-					title: 'Adres Defteri',
-					tabBarIcon: ({ color, size }) => <Ionicons name='book-outline' size={size} color={color} />
+					title: 'Adresler',
+					tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? 'bookmark' : 'bookmark-outline'} size={24} color={color} />
 				}}
 			/>
 			<Tabs.Screen
 				name='settings'
 				options={{
 					title: 'Ayarlar',
-					tabBarIcon: ({ color, size }) => <Ionicons name='settings-outline' size={size} color={color} />
+					tabBarIcon: ({ focused, color }) => <Ionicons name={focused ? 'settings' : 'settings-outline'} size={24} color={color} />
 				}}
 			/>
 		</Tabs>

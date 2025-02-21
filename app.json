@@ -12,12 +12,14 @@
 			"supportsTablet": true,
 			"infoPlist": {
 				"UIViewControllerBasedStatusBarAppearance": true
-			}
+			},
+			"bundleIdentifier": "com.routingapp"
 		},
 		"android": {
 			"adaptiveIcon": {
 				"backgroundColor": "#ffffff"
-			}
+			},
+			"package": "com.routingapp"
 		},
 		"web": {
 			"favicon": "./assets/favicon.png"
@@ -26,6 +28,11 @@
 		"experiments": {
 			"typedRoutes": true,
 			"tsconfigPaths": true
+		},
+		"extra": {
+			"router": {
+				"origin": false
+			}
 		}
 	}
 }
