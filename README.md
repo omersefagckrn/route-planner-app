@@ -11,6 +11,53 @@ React Native ve Expo ile geliştirilmiştir.
 - 🔄 Gerçek zamanlı güncelleme
 - 📱 Cross-platform destek (iOS & Android)
 
+## 📱 Ekran Görüntüleri
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5863.PNG" width="200" alt="Giriş Ekranı">
+  <img src="screenshots/IMG_5864.PNG" width="200" alt="Kayıt Ekranı">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5865.PNG" width="200" alt="Ana Sayfa">
+  <img src="screenshots/IMG_5866.PNG" width="200" alt="Özellikler">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5867.PNG" width="200" alt="Adres Defteri">
+  <img src="screenshots/IMG_5868.PNG" width="200" alt="Harita Seçimi">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5869.PNG" width="200" alt="Profil">
+  <img src="screenshots/IMG_5870.PNG" width="200" alt="Ayarlar">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5871.PNG" width="200" alt="Rota Planlama">
+  <img src="screenshots/IMG_5872.PNG" width="200" alt="Rota Detayları">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5873.PNG" width="200" alt="Adres Ekleme">
+  <img src="screenshots/IMG_5874.PNG" width="200" alt="Adres Düzenleme">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5875.PNG" width="200" alt="Ekran 13">
+  <img src="screenshots/IMG_5876.PNG" width="200" alt="Ekran 14">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5877.PNG" width="200" alt="Ekran 15">
+  <img src="screenshots/IMG_5878.PNG" width="200" alt="Ekran 16">
+</div>
+
+<div style="display: flex; gap: 10px; margin-bottom: 20px;">
+  <img src="screenshots/IMG_5879.PNG" width="200" alt="Ekran 17">
+  <img src="screenshots/IMG_5882.PNG" width="200" alt="Ekran 17">
+</div>
+
 ## 🛠️ Teknolojiler
 
 - React Native
