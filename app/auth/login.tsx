@@ -76,7 +76,7 @@ export default function LoginScreen() {
 
 								<InputField
 									label='Şifre'
-									placeholder='••••••'
+									placeholder='123456'
 									value={values.password}
 									onChangeText={handleChange('password')}
 									onBlur={handleBlur('password')}

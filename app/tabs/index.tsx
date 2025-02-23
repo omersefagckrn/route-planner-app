@@ -1,15 +1,14 @@
-import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Dimensions, Image, Pressable } from 'react-native';
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Dimensions, Image, Pressable, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { OverlayLoading } from '../../components/OverlayLoading';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from '@/store/rootStore';
-import { getCurrentUser } from '../../store/features/authSlice';
-import Animated, { useAnimatedScrollHandler, useSharedValue, interpolate, useAnimatedStyle, withSpring, FadeIn, FadeInDown, FadeInUp, ZoomIn, Layout } from 'react-native-reanimated';
+import Animated, { useAnimatedScrollHandler, useSharedValue, interpolate, useAnimatedStyle, withSpring, FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors } from '../../lib/theme';
+import { useDispatch, useSelector } from 'react-redux';
+import { getCurrentUser } from '../../store/features/authSlice';
+import { OverlayLoading } from '../../components/OverlayLoading';
+import type { RootState, AppDispatch } from '@/store/rootStore';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,19 +17,19 @@ const slides = [
 		id: 1,
 		image: 'https://images.unsplash.com/photo-1532939163844-547f958e91b4?w=800',
 		title: 'Rotanızı Kolayca Planlayın',
-		description: 'Sürüş deneyiminizi optimize edin, zamandan tasarruf edin'
+		description: 'Sürüş deneyiminizi optimize edin'
 	},
 	{
 		id: 2,
 		image: 'https://images.unsplash.com/photo-1484821582734-6c6c9f99a672?w=800',
 		title: 'Favori Rotalarınızı Kaydedin',
-		description: 'Sık kullandığınız rotaları tek dokunuşla erişin'
+		description: 'Sık kullandığınız rotalara hızlıca erişin'
 	},
 	{
 		id: 3,
 		image: 'https://images.unsplash.com/photo-1581262177000-8139a463e531?w=800',
 		title: 'Gerçek Zamanlı Takip',
-		description: 'Rotanızı canlı olarak takip edin ve güncellemelerden haberdar olun'
+		description: 'Rotanızı canlı olarak takip edin'
 	}
 ];
 
@@ -89,7 +88,71 @@ const benefits = [
 	}
 ];
 
-const SlideItem = ({ item, index, scrollX }: { item: any; index: number; scrollX: any }) => {
+interface Feature {
+	icon: string;
+	title: string;
+	description: string;
+	color: string;
+}
+
+interface Stat {
+	title: string;
+	value: string;
+	icon: string;
+	color: string;
+}
+
+interface Benefit {
+	title: string;
+	description: string;
+	icon: string;
+	color: string;
+}
+
+interface Section {
+	type: 'header' | 'slider' | 'features' | 'stats' | 'benefits';
+	data: any[];
+}
+
+const UserHeader = React.memo(({ user, onCreateRoute }: any) => {
+	const userInitials = useMemo(() => {
+		if (!user?.user_metadata?.first_name && !user?.user_metadata?.last_name) return '??';
+		const firstInitial = user.user_metadata.first_name?.[0] || '';
+		const lastInitial = user.user_metadata.last_name?.[0] || '';
+		return `${firstInitial}${lastInitial}`.toUpperCase();
+	}, [user?.user_metadata?.first_name, user?.user_metadata?.last_name]);
+
+	const userName = useMemo(() => {
+		return user?.user_metadata?.first_name || 'Kullanıcı';
+	}, [user?.user_metadata?.first_name]);
+
+	const fullName = useMemo(() => {
+		const firstName = user?.user_metadata?.first_name || '';
+		const lastName = user?.user_metadata?.last_name || '';
+		return `${firstName} ${lastName}`.trim();
+	}, [user?.user_metadata?.first_name, user?.user_metadata?.last_name]);
+
+	return (
+		<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.userHeader}>
+			<View style={styles.userInfo}>
+				<View style={styles.userAvatar}>
+					<Text style={styles.userInitials}>{userInitials}</Text>
+				</View>
+				<View style={styles.userDetails}>
+					<Text style={styles.welcomeText}>Hoş Geldin, {userName}</Text>
+					<Text style={styles.nameText}>{fullName}</Text>
+				</View>
+			</View>
+
+			<TouchableOpacity onPress={onCreateRoute} style={styles.createRouteButton}>
+				<Ionicons name='add-circle-outline' size={24} color='#fff' />
+				<Text style={styles.createRouteText}>Yeni Rota Oluştur</Text>
+			</TouchableOpacity>
+		</LinearGradient>
+	);
+});
+
+const SlideItem = React.memo(({ item, index, scrollX }: any) => {
 	const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
 	const animatedStyle = useAnimatedStyle(() => {
@@ -105,49 +168,47 @@ const SlideItem = ({ item, index, scrollX }: { item: any; index: number; scrollX
 	return (
 		<View style={styles.slideItem}>
 			<Animated.View style={[styles.slideImageContainer, animatedStyle]}>
-				<Image source={{ uri: item.image }} style={styles.slideImage} />
-				<LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.slideGradient}>
+				<Image source={{ uri: item.image }} style={styles.slideImage} resizeMode='cover' />
+				<LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.slideGradient} pointerEvents='none'>
 					<Text style={styles.slideTitle}>{item.title}</Text>
 					<Text style={styles.slideDescription}>{item.description}</Text>
 				</LinearGradient>
 			</Animated.View>
 		</View>
 	);
-};
+});
 
-const FeatureCard = ({ item, index }: { item: any; index: number }) => {
+const FeatureCard = React.memo(({ item }: any) => {
 	const scale = useSharedValue(1);
 
 	const animatedStyle = useAnimatedStyle(() => ({
 		transform: [{ scale: scale.value }]
 	}));
 
-	const onPressIn = () => {
+	const handlePressIn = useCallback(() => {
 		scale.value = withSpring(0.95);
-	};
+	}, []);
 
-	const onPressOut = () => {
+	const handlePressOut = useCallback(() => {
 		scale.value = withSpring(1);
-	};
+	}, []);
 
 	return (
-		<Animated.View entering={FadeInDown.delay(index * 200)} layout={Layout.springify()} style={[styles.featureCard]}>
-			<Animated.View style={animatedStyle}>
-				<Pressable onPressIn={onPressIn} onPressOut={onPressOut} style={[styles.featureCardContent, { backgroundColor: `${item.color}10` }]}>
-					<View style={[styles.featureIconContainer, { backgroundColor: `${item.color}20` }]}>
-						<Ionicons name={item.icon as any} size={24} color={item.color} />
-					</View>
-					<Text style={styles.featureTitle}>{item.title}</Text>
-					<Text style={styles.featureDescription}>{item.description}</Text>
-				</Pressable>
-			</Animated.View>
+		<Animated.View style={[styles.featureCard, animatedStyle]}>
+			<Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} style={[styles.featureCardContent, { backgroundColor: `${item.color}10` }]}>
+				<View style={[styles.featureIconContainer, { backgroundColor: `${item.color}20` }]}>
+					<Ionicons name={item.icon as any} size={24} color={item.color} />
+				</View>
+				<Text style={styles.featureTitle}>{item.title}</Text>
+				<Text style={styles.featureDescription}>{item.description}</Text>
+			</Pressable>
 		</Animated.View>
 	);
-};
+});
 
-const StatCard = ({ item, index }: { item: any; index: number }) => {
+const StatCard = React.memo(({ item }: any) => {
 	return (
-		<Animated.View entering={ZoomIn.delay(index * 200)} layout={Layout.springify()} style={[styles.statCard, { backgroundColor: `${item.color}10` }]}>
+		<Animated.View style={[styles.statCard, { backgroundColor: `${item.color}10` }]}>
 			<View style={[styles.statIconContainer, { backgroundColor: `${item.color}20` }]}>
 				<Ionicons name={item.icon as any} size={24} color={item.color} />
 			</View>
@@ -155,11 +216,11 @@ const StatCard = ({ item, index }: { item: any; index: number }) => {
 			<Text style={styles.statTitle}>{item.title}</Text>
 		</Animated.View>
 	);
-};
+});
 
-const BenefitCard = ({ item, index }: { item: any; index: number }) => {
+const BenefitCard = React.memo(({ item }: any) => {
 	return (
-		<Animated.View entering={FadeInUp.delay(index * 300)} layout={Layout.springify()} style={styles.benefitCard}>
+		<View style={styles.benefitCard}>
 			<LinearGradient colors={[`${item.color}20`, `${item.color}10`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.benefitGradient}>
 				<View style={[styles.benefitIconContainer, { backgroundColor: `${item.color}30` }]}>
 					<Ionicons name={item.icon as any} size={32} color={item.color} />
@@ -167,42 +228,20 @@ const BenefitCard = ({ item, index }: { item: any; index: number }) => {
 				<Text style={styles.benefitTitle}>{item.title}</Text>
 				<Text style={styles.benefitDescription}>{item.description}</Text>
 			</LinearGradient>
-		</Animated.View>
+		</View>
 	);
-};
+});
 
 export default function HomeScreen() {
 	const dispatch = useDispatch<AppDispatch>();
 	const { user, isLoading } = useSelector((state: RootState) => state.auth);
-	const userMetadata = user?.user_metadata;
-	const [activeSlide, setActiveSlide] = useState(0);
 	const scrollX = useSharedValue(0);
 	const flatListRef = useRef(null);
 	const router = useRouter();
 
-	const userInitials = useMemo(() => {
-		if (!user?.user_metadata?.first_name && !user?.user_metadata?.last_name) return '??';
-		const firstInitial = user.user_metadata.first_name?.[0] || '';
-		const lastInitial = user.user_metadata.last_name?.[0] || '';
-		return `${firstInitial}${lastInitial}`.toUpperCase();
-	}, [user]);
-
-	useEffect(() => {
-		const loadUserData = async () => {
-			await dispatch(getCurrentUser());
-		};
-		loadUserData();
-	}, [dispatch]);
-
-	const userName = useMemo(() => {
-		return user?.user_metadata?.first_name || 'Kullanıcı';
-	}, [user]);
-
-	const fullName = useMemo(() => {
-		const firstName = user?.user_metadata?.first_name || '';
-		const lastName = user?.user_metadata?.last_name || '';
-		return `${firstName} ${lastName}`.trim();
-	}, [user]);
+	const handleCreateRoute = useCallback(() => {
+		router.push('/tabs/address-book');
+	}, [router]);
 
 	const scrollHandler = useAnimatedScrollHandler({
 		onScroll: (event) => {
@@ -210,7 +249,116 @@ export default function HomeScreen() {
 		}
 	});
 
-	const renderSlideItem = useCallback(({ item, index }: { item: any; index: number }) => <SlideItem item={item} index={index} scrollX={scrollX} />, [scrollX]);
+	useEffect(() => {
+		dispatch(getCurrentUser());
+	}, [dispatch]);
+
+	const sections = useMemo(
+		() => [
+			{ type: 'header', data: [user] },
+			{ type: 'slider', data: slides },
+			{ type: 'features', data: features },
+			{ type: 'stats', data: stats },
+			{ type: 'benefits', data: benefits }
+		],
+		[user]
+	);
+
+	const renderItem = useCallback(
+		({ item }: { item: Section }) => {
+			switch (item.type) {
+				case 'header':
+					return item.data[0] && <UserHeader user={item.data[0]} onCreateRoute={handleCreateRoute} />;
+				case 'slider':
+					return (
+						<View style={styles.sliderContainer}>
+							<Animated.FlatList
+								horizontal
+								data={item.data}
+								renderItem={({ item: slideItem, index: slideIndex }) => (
+									<SlideItem item={slideItem} index={slideIndex} scrollX={scrollX} />
+								)}
+								keyExtractor={(slideItem) => slideItem.id.toString()}
+								pagingEnabled
+								showsHorizontalScrollIndicator={false}
+								onScroll={scrollHandler}
+								scrollEventThrottle={16}
+								removeClippedSubviews={true}
+								initialNumToRender={1}
+								maxToRenderPerBatch={2}
+								windowSize={2}
+								getItemLayout={(_, index) => ({
+									length: width,
+									offset: width * index,
+									index
+								})}
+							/>
+							<View style={styles.paginationContainer}>
+								{item.data.map((_, index) => {
+									const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+									const dotWidth = interpolate(scrollX.value, inputRange, [8, 16, 8]);
+									const opacity = interpolate(scrollX.value, inputRange, [0.3, 1, 0.3]);
+									return (
+										<Animated.View
+											key={index}
+											style={[
+												styles.paginationDot,
+												{
+													width: dotWidth,
+													opacity
+												}
+											]}
+										/>
+									);
+								})}
+							</View>
+						</View>
+					);
+				case 'features':
+					return (
+						<View style={styles.featuresContainer}>
+							<Animated.Text entering={FadeIn} style={styles.sectionTitle}>
+								Özellikler
+							</Animated.Text>
+							<View style={styles.featuresGrid}>
+								{item.data.map((feature: Feature) => (
+									<FeatureCard key={feature.title} item={feature} />
+								))}
+							</View>
+						</View>
+					);
+				case 'stats':
+					return (
+						<View style={styles.statsContainer}>
+							<Animated.Text entering={FadeIn} style={styles.sectionTitle}>
+								Rakamlarla Biz
+							</Animated.Text>
+							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
+								{item.data.map((stat: Stat) => (
+									<StatCard key={stat.title} item={stat} />
+								))}
+							</ScrollView>
+						</View>
+					);
+				case 'benefits':
+					return (
+						<View style={styles.benefitsContainer}>
+							<Animated.Text entering={FadeIn} style={styles.sectionTitle}>
+								Avantajlar
+							</Animated.Text>
+							<View style={styles.benefitsGrid}>
+								{item.data.map((benefit: Benefit) => (
+									<BenefitCard key={benefit.title} item={benefit} />
+								))}
+							</View>
+						</View>
+					);
+				default:
+					return null;
+			}
+		},
+		[handleCreateRoute, scrollHandler, scrollX]
+	);
 
 	if (isLoading) {
 		return (
@@ -222,105 +370,14 @@ export default function HomeScreen() {
 
 	return (
 		<SafeAreaView edges={['top']} style={styles.container}>
-			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-				{user ? (
-					<View>
-						<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.userHeader}>
-							<View style={styles.userInfo}>
-								<View style={styles.userAvatar}>
-									<Text style={styles.userInitials}>{userInitials}</Text>
-								</View>
-								<View style={styles.userDetails}>
-									<Text style={styles.welcomeText}>Hoş Geldin, {userName}</Text>
-									<Text style={styles.nameText}>{fullName}</Text>
-								</View>
-							</View>
-
-							<TouchableOpacity onPress={() => router.push('/tabs/address-book')} style={styles.createRouteButton}>
-								<Ionicons name='add-circle-outline' size={24} color='#fff' />
-								<Text style={styles.createRouteText}>Yeni Rota Oluştur</Text>
-							</TouchableOpacity>
-						</LinearGradient>
-					</View>
-				) : null}
-
-				{/* Slider Bölümü */}
-				<View style={styles.sliderContainer}>
-					<Animated.FlatList
-						ref={flatListRef}
-						data={slides}
-						renderItem={renderSlideItem}
-						keyExtractor={(item) => item.id.toString()}
-						horizontal
-						pagingEnabled
-						showsHorizontalScrollIndicator={false}
-						onScroll={scrollHandler}
-						onMomentumScrollEnd={(event) => {
-							const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
-							setActiveSlide(newIndex);
-						}}
-					/>
-
-					<View style={styles.paginationContainer}>
-						{slides.map((_, index) => (
-							<View
-								key={index}
-								style={[
-									styles.paginationDot,
-									{
-										backgroundColor: activeSlide === index ? '#1A1A1A' : '#E5E7EB',
-										width: activeSlide === index ? 24 : 8
-									}
-								]}
-							/>
-						))}
-					</View>
-				</View>
-
-				{/* Features Section */}
-				<View style={styles.featuresContainer}>
-					<Animated.Text entering={FadeIn.delay(200)} style={styles.sectionTitle}>
-						Özellikler
-					</Animated.Text>
-					<View style={styles.featuresGrid}>
-						{features.map((feature, index) => (
-							<FeatureCard key={index} item={feature} index={index} />
-						))}
-					</View>
-				</View>
-
-				{/* Stats Section */}
-				<View style={styles.statsContainer}>
-					<Animated.Text entering={FadeIn.delay(400)} style={styles.sectionTitle}>
-						Rakamlarla Biz
-					</Animated.Text>
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
-						{stats.map((stat, index) => (
-							<StatCard key={index} item={stat} index={index} />
-						))}
-					</ScrollView>
-				</View>
-
-				{/* Benefits Section */}
-				<View style={styles.benefitsContainer}>
-					<Animated.Text entering={FadeIn.delay(600)} style={styles.sectionTitle}>
-						Avantajlar
-					</Animated.Text>
-					<View style={styles.benefitsGrid}>
-						{benefits.map((benefit, index) => (
-							<BenefitCard key={index} item={benefit} index={index} />
-						))}
-					</View>
-				</View>
-
-				{/* Call to Action */}
-				<Animated.View entering={FadeInUp.delay(800)} style={styles.ctaContainer}>
-					<LinearGradient colors={[colors.primary.light, colors.primary.dark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaGradient}>
-						<Text style={styles.ctaTitle}>Hemen Başlayın</Text>
-						<Text style={styles.ctaDescription}>Rotanızı optimize edin, zamandan ve yakıttan tasarruf edin.</Text>
-					</LinearGradient>
-				</Animated.View>
-			</ScrollView>
+			<FlatList
+				data={sections as any}
+				renderItem={renderItem}
+				keyExtractor={(item) => item.type}
+				showsVerticalScrollIndicator={false}
+				removeClippedSubviews={true}
+				scrollEventThrottle={16}
+			/>
 		</SafeAreaView>
 	);
 }
@@ -383,7 +440,7 @@ const styles = StyleSheet.create({
 	},
 	sliderContainer: {
 		height: 300,
-		marginTop: 20
+		marginTop: 15
 	},
 	slideItem: {
 		width,
@@ -391,8 +448,6 @@ const styles = StyleSheet.create({
 	},
 	slideImageContainer: {
 		flex: 1,
-		margin: 10,
-		borderRadius: 20,
 		overflow: 'hidden'
 	},
 	slideImage: {
@@ -416,25 +471,15 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: 'rgba(255, 255, 255, 0.9)'
 	},
-	paginationContainer: {
-		flexDirection: 'row',
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginTop: 16
-	},
-	paginationDot: {
-		height: 8,
-		borderRadius: 4,
-		marginHorizontal: 4,
-		backgroundColor: '#E5E7EB'
-	},
 	featuresContainer: {
-		padding: 20,
-		paddingTop: 32
+		paddingBottom: 20,
+		paddingRight: 20,
+		paddingLeft: 20
 	},
 	featuresGrid: {
 		flexDirection: 'row',
 		flexWrap: 'wrap',
+		justifyContent: 'space-between',
 		gap: 16,
 		marginTop: 16
 	},
@@ -590,5 +635,21 @@ const styles = StyleSheet.create({
 		fontWeight: 'bold',
 		color: '#1F2937',
 		marginBottom: 8
+	},
+	sliderContentContainer: {
+		padding: 10
+	},
+	paginationContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 8,
+		marginTop: -32,
+		height: 32
+	},
+	paginationDot: {
+		height: 8,
+		backgroundColor: '#fff',
+		borderRadius: 4
 	}
 });

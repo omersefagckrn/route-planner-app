@@ -47,13 +47,7 @@ export const RegisterSchema = Yup.object().shape({
 		.required('Soyisim zorunludur'),
 	phone: Yup.string().matches(phoneRegExp, 'Geçerli bir telefon numarası giriniz (5XX) XXX-XXXX').required('Telefon numarası zorunludur'),
 	email: Yup.string().email('Geçerli bir e-posta adresi giriniz').max(255, 'E-posta adresi çok uzun').required('E-posta zorunludur'),
-	password: Yup.string()
-		.min(6, 'Şifre en az 6 karakter olmalıdır')
-		.max(50, 'Şifre çok uzun')
-		.matches(/[A-Z]/, 'Şifre en az bir büyük harf içermelidir')
-		.matches(/[a-z]/, 'Şifre en az bir küçük harf içermelidir')
-		.matches(/[0-9]/, 'Şifre en az bir rakam içermelidir')
-		.required('Şifre zorunludur'),
+	password: Yup.string().min(6, 'Şifre en az 6 karakter olmalıdır').max(50, 'Şifre çok uzun').matches(/[a-z]/, 'Şifre en az bir küçük harf içermelidir').required('Şifre zorunludur'),
 	confirmPassword: Yup.string()
 		.oneOf([Yup.ref('password')], 'Şifreler eşleşmiyor')
 		.required('Şifre tekrarı zorunludur')

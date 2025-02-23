@@ -1,6 +1,25 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { supabase } from '../../lib/supabase';
 import { User } from '@supabase/supabase-js';
+import * as Notifications from 'expo-notifications';
+
+// Bildirim gösterme yardımcı fonksiyonu
+async function showNotification(title: string, body: string) {
+	try {
+		await Notifications.scheduleNotificationAsync({
+			content: {
+				title,
+				body,
+				sound: true,
+				priority: Notifications.AndroidNotificationPriority.HIGH,
+				vibrate: [0, 250, 250, 250]
+			},
+			trigger: null // Bildirimi hemen göster
+		});
+	} catch (error) {
+		console.error('Bildirim gösterme hatası:', error);
+	}
+}
 
 interface AuthState {
 	user: User | null;
@@ -30,6 +49,9 @@ export const signIn = createAsyncThunk('auth/signIn', async ({ email, password }
 		if (userError) throw userError;
 		if (!user) throw new Error('Kullanıcı bulunamadı');
 
+		// Başarılı giriş bildirimi
+		await showNotification('Giriş Başarılı', 'Hesabınıza başarıyla giriş yaptınız.');
+
 		return user;
 	} catch (error: any) {
 		throw new Error(error.message || 'Giriş yapılırken bir hata oluştu');
@@ -56,22 +78,24 @@ export const signUp = createAsyncThunk('auth/signUp', async ({ email, password, 
 			throw authError;
 		}
 
-		// Kayıt sonrası otomatik giriş yap
-		const { data, error } = await supabase.auth.signInWithPassword({
-			email,
-			password
-		});
+		// Kayıt başarılı bildirimi
+		await showNotification('Kayıt Başarılı', 'Hesabınız başarıyla oluşturuldu.');
 
-		if (error) throw error;
-		return data.user;
+		return authData.user;
 	} catch (error: any) {
 		throw new Error(error.message || 'Kayıt olurken bir hata oluştu');
 	}
 });
 
 export const signOut = createAsyncThunk('auth/signOut', async () => {
-	const { error } = await supabase.auth.signOut();
-	if (error) throw error;
+	try {
+		const { error } = await supabase.auth.signOut();
+		if (error) throw error;
+
+		return null;
+	} catch (error: any) {
+		throw error;
+	}
 });
 
 export const getCurrentUser = createAsyncThunk('auth/getCurrentUser', async () => {
@@ -152,6 +176,11 @@ const authSlice = createSlice({
 	reducers: {
 		clearError: (state) => {
 			state.error = null;
+		},
+		clearUser: (state) => {
+			state.user = null;
+			state.error = null;
+			state.isLoading = false;
 		}
 	},
 	extraReducers: (builder) => {
@@ -230,5 +259,5 @@ const authSlice = createSlice({
 	}
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, clearUser } = authSlice.actions;
 export default authSlice.reducer;

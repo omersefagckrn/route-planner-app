@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Animated, ScrollView, ViewStyle, Linking, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Animated, ScrollView, ViewStyle, Linking, Alert, ActivityIndicator, Keyboard } from 'react-native';
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -959,7 +959,7 @@ export default function RoutesScreen() {
 		(address: Address) => {
 			setShowSearchResults(false);
 			setSearchQuery('');
-			handleMarkerPress(address);
+			Keyboard.dismiss();
 
 			mapRef.current?.animateToRegion(
 				{
@@ -970,6 +970,8 @@ export default function RoutesScreen() {
 				},
 				1000
 			);
+
+			handleMarkerPress(address);
 		},
 		[handleMarkerPress]
 	);

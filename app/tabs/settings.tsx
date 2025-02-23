@@ -1,21 +1,26 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Linking, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { Link, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootState, AppDispatch } from '@/store/rootStore';
 import { getCurrentUser, signOut } from '../../store/features/authSlice';
 import { OverlayLoading } from '../../components/OverlayLoading';
 import { BtnAuth } from '../../components/BtnAuth';
+import { ActiveSessions } from '../../components/ActiveSessions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '@/lib/theme';
 
 export default function SettingsScreen() {
 	const dispatch = useDispatch<AppDispatch>();
 	const { user, isLoading } = useSelector((state: RootState) => state.auth);
 	const [locationPermission, setLocationPermission] = useState<string | null>(null);
+	const [notificationPermission, setNotificationPermission] = useState<string | null>(null);
+	const [refreshing, setRefreshing] = useState(false);
 
 	const userInitials = useMemo(() => {
 		if (!user?.user_metadata?.first_name && !user?.user_metadata?.last_name) return '??';
@@ -28,6 +33,7 @@ export default function SettingsScreen() {
 		const loadUserData = async () => {
 			await dispatch(getCurrentUser());
 			checkLocationPermission();
+			checkNotificationPermission();
 		};
 		loadUserData();
 	}, [dispatch]);
@@ -37,9 +43,22 @@ export default function SettingsScreen() {
 		setLocationPermission(locationStatus.status);
 	};
 
+	const checkNotificationPermission = async () => {
+		const { status } = await Notifications.getPermissionsAsync();
+		setNotificationPermission(status);
+	};
+
 	const requestLocationPermission = async () => {
 		const { status } = await Location.requestForegroundPermissionsAsync();
 		setLocationPermission(status);
+		if (status !== 'granted') {
+			Linking.openSettings();
+		}
+	};
+
+	const requestNotificationPermission = async () => {
+		const { status } = await Notifications.requestPermissionsAsync();
+		setNotificationPermission(status);
 		if (status !== 'granted') {
 			Linking.openSettings();
 		}
@@ -51,6 +70,17 @@ export default function SettingsScreen() {
 
 	const handleChangePassword = () => {
 		router.push('/(modals)/change-password');
+	};
+
+	const handleRefresh = async () => {
+		setRefreshing(true);
+		try {
+			await Promise.all([dispatch(getCurrentUser()), checkLocationPermission(), checkNotificationPermission()]);
+		} catch (error) {
+			console.error('Yenileme hatası:', error);
+		} finally {
+			setRefreshing(false);
+		}
 	};
 
 	if (isLoading) {
@@ -112,8 +142,21 @@ export default function SettingsScreen() {
 	}
 
 	return (
-		<SafeAreaView style={styles.container}>
-			<ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+		<SafeAreaView style={styles.container} edges={['top']}>
+			<ScrollView
+				style={styles.content}
+				showsVerticalScrollIndicator={false}
+				refreshControl={
+					<RefreshControl
+						refreshing={refreshing}
+						onRefresh={handleRefresh}
+						tintColor={colors.primary.light}
+						colors={[colors.primary.light]} // Android için
+						title='Yenileniyor...' // iOS için
+						titleColor={colors.text.secondary} // iOS için
+					/>
+				}
+			>
 				<LinearGradient colors={['#1A1A1A', '#333333']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
 					<View style={styles.profileContainer}>
 						<View style={styles.userAvatar}>
@@ -141,6 +184,21 @@ export default function SettingsScreen() {
 							</View>
 						</View>
 						{locationPermission !== 'granted' && <Ionicons name='chevron-forward' size={24} color='#1A1A1A' />}
+					</TouchableOpacity>
+					<TouchableOpacity
+						style={[styles.menuItem, { marginTop: 8 }]}
+						onPress={notificationPermission === 'granted' ? undefined : requestNotificationPermission}
+					>
+						<View style={styles.menuItemLeft}>
+							<Ionicons name='notifications-outline' size={24} color={notificationPermission === 'granted' ? '#4CAF50' : '#1A1A1A'} />
+							<View style={styles.permissionInfo}>
+								<Text style={styles.menuItemText}>Bildirim İzni</Text>
+								<Text style={[styles.permissionStatus, { color: notificationPermission === 'granted' ? '#4CAF50' : '#FF3B30' }]}>
+									{notificationPermission === 'granted' ? 'İzin Verildi' : 'İzin Verilmedi'}
+								</Text>
+							</View>
+						</View>
+						{notificationPermission !== 'granted' && <Ionicons name='chevron-forward' size={24} color='#1A1A1A' />}
 					</TouchableOpacity>
 				</View>
 
@@ -189,6 +247,8 @@ export default function SettingsScreen() {
 						</TouchableOpacity>
 					</View>
 				)}
+
+				{user?.id && <ActiveSessions userId={user.id} />}
 
 				<TouchableOpacity style={[styles.signOutButton, { marginTop: 12 }]} onPress={handleSignOut}>
 					<Ionicons name='log-out-outline' size={24} color='#FF3B30' />

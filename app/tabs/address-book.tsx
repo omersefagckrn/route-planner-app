@@ -88,9 +88,6 @@ export default function AddressBookScreen() {
 	if (!user) {
 		return (
 			<SafeAreaView style={styles.container} edges={['top']}>
-				<View style={styles.header}>
-					<Text style={styles.title}>Adres Defteri</Text>
-				</View>
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.welcomeScrollContent} showsVerticalScrollIndicator={false} bounces={true}>
 					<View style={styles.welcomeContainer}>
 						<View style={styles.iconContainer}>
